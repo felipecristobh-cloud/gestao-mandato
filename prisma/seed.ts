@@ -31,7 +31,7 @@ async function main() {
     await db.usuario.upsert({
       where: { email: u.email },
       update: {},
-      create: { ...u, senhaHash, trocarSenha: false },
+      create: { ...u, senhaHash, trocarSenha: true },
     });
   }
   console.log(`Seed: ${REGIONAIS.length} regionais, ${USUARIOS.length} usuários fictícios.`);

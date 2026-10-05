@@ -12,11 +12,11 @@ export function FormLogin() {
         {estado?.erro && <Aviso>{estado.erro}</Aviso>}
         <div>
           <Rotulo htmlFor="email">E-mail</Rotulo>
-          <Campo id="email" name="email" type="email" autoComplete="username" required autoFocus />
+          <Campo id="email" name="email" type="email" autoComplete="username" required autoFocus={!estado?.email} defaultValue={estado?.email} />
         </div>
         <div>
           <Rotulo htmlFor="senha">Senha</Rotulo>
-          <Campo id="senha" name="senha" type="password" autoComplete="current-password" required />
+          <Campo id="senha" name="senha" type="password" autoComplete="current-password" required autoFocus={!!estado?.email} />
         </div>
         <Botao type="submit" className="w-full" disabled={enviando}>
           {enviando ? "Entrando…" : "Entrar"}

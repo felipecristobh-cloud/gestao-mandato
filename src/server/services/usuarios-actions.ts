@@ -6,7 +6,8 @@ import { exigirUsuario } from "@/server/auth/current";
 import { AppError } from "@/server/errors";
 import { atualizarUsuario, criarUsuario, redefinirSenha } from "./usuarios";
 
-export type EstadoUsuario = { erro?: string; ok?: string; senhaTemporaria?: string; email?: string } | undefined;
+type Valores = ReturnType<typeof dadosDoForm> & { ativo?: boolean };
+export type EstadoUsuario = { erro?: string; ok?: string; senhaTemporaria?: string; email?: string; valores?: Valores } | undefined;
 
 function dadosDoForm(form: FormData) {
   return {
@@ -30,15 +31,16 @@ async function tratar<T>(fn: () => Promise<T>): Promise<T | { erro: string }> {
 export async function criarUsuarioAction(_: EstadoUsuario, form: FormData): Promise<EstadoUsuario> {
   const ator = await exigirUsuario();
   const r = await tratar(() => criarUsuario(prisma, ator, dadosDoForm(form)));
-  if ("erro" in r) return r;
+  if ("erro" in r) return { ...r, valores: dadosDoForm(form) };
   revalidatePath("/usuarios");
   return { ok: "Usuário criado.", senhaTemporaria: r.senhaTemporaria, email: r.usuario.email };
 }
 
 export async function atualizarUsuarioAction(id: string, _: EstadoUsuario, form: FormData): Promise<EstadoUsuario> {
   const ator = await exigirUsuario();
-  const r = await tratar(() => atualizarUsuario(prisma, ator, id, { ...dadosDoForm(form), ativo: form.get("ativo") === "on" }));
-  if (r && typeof r === "object" && "erro" in r) return r as { erro: string };
+  const dados = { ...dadosDoForm(form), ativo: form.get("ativo") === "on" };
+  const r = await tratar(() => atualizarUsuario(prisma, ator, id, dados));
+  if (r && typeof r === "object" && "erro" in r) return { erro: (r as { erro: string }).erro, valores: dados };
   revalidatePath("/usuarios");
   return { ok: "Alterações salvas." };
 }

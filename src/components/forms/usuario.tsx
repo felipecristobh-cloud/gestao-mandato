@@ -11,7 +11,7 @@ const PERFIS = [
   ["ADMIN", "Administrador — acesso total"],
 ] as const;
 
-type Valores = { nome: string; email: string; telefone: string | null; cargo: string | null; perfil: string; ativo: boolean };
+type Valores = { nome: string; email: string; telefone: string | null; cargo: string | null; perfil: string; ativo?: boolean };
 
 export function SenhaTemporaria({ senha, email }: { senha: string; email?: string }) {
   return (
@@ -24,7 +24,7 @@ export function SenhaTemporaria({ senha, email }: { senha: string; email?: strin
 
 export function FormUsuario({
   acao,
-  valores,
+  valores: iniciais,
   edicao,
 }: {
   acao: (e: EstadoUsuario, f: FormData) => Promise<EstadoUsuario>;
@@ -32,6 +32,7 @@ export function FormUsuario({
   edicao?: boolean;
 }) {
   const [estado, enviar, enviando] = useActionState(acao, undefined);
+  const valores = estado?.erro && estado.valores ? { ...iniciais, ...estado.valores } : iniciais;
   return (
     <form action={enviar} className="space-y-4">
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}

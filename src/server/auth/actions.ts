@@ -10,18 +10,19 @@ import { registrarAuditoria } from "@/server/audit";
 import { trocarPropriaSenha } from "@/server/services/usuarios";
 import { AppError } from "@/server/errors";
 
-export type EstadoForm = { erro?: string; ok?: string } | undefined;
+export type EstadoForm = { erro?: string; ok?: string; email?: string } | undefined;
 
 export async function entrarAction(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const email = String(form.get("email") ?? "");
   const senha = String(form.get("senha") ?? "");
-  if (!email || !senha) return { erro: "Informe e-mail e senha." };
+  if (!email || !senha) return { erro: "Informe e-mail e senha.", email };
   const r = await autenticar(prisma, email, senha, await metaRequisicao());
   if (!r.ok) {
     return {
       erro: r.motivo === "BLOQUEADO"
         ? "Muitas tentativas. Acesso bloqueado por 15 minutos."
         : "E-mail ou senha incorretos.",
+      email,
     };
   }
   (await cookies()).set(COOKIE_SESSAO, r.token, {
