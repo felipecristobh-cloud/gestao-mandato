@@ -13,9 +13,14 @@ const ROTULO_ACAO: Record<string, string> = {
   EXPORTAR: "Exportou", LOGIN: "Entrou", LOGIN_FALHA: "Falha de login", LOGOUT: "Saiu",
 };
 
+const CAMPOS_OCULTOS = new Set(["id", "criadoEm", "atualizadoEm", "ultimoLogin", "tentativasFalhas", "bloqueadoAte"]);
+
 function resumo(v: unknown) {
   if (!v || typeof v !== "object") return "";
-  return Object.entries(v as Record<string, unknown>).map(([k, x]) => `${k}: ${JSON.stringify(x)}`).join(" · ");
+  return Object.entries(v as Record<string, unknown>)
+    .filter(([k, x]) => x !== null && x !== "" && !CAMPOS_OCULTOS.has(k))
+    .map(([k, x]) => `${k}: ${typeof x === "string" ? x : JSON.stringify(x)}`)
+    .join(" · ");
 }
 
 export default async function AuditoriaPage({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
