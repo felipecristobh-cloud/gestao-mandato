@@ -60,15 +60,16 @@ export async function atualizarUsuario(db: Db, ator: Ator, id: string, entrada: 
     throw conflito("Já existe um usuário com este e-mail.");
   }
   const deixaDeSerAdmin = atual.perfil === "ADMIN" && atual.ativo && (dados.perfil !== "ADMIN" || !dados.ativo);
-  if (deixaDeSerAdmin) {
-    const admins = await db.usuario.count({ where: { perfil: "ADMIN", ativo: true } });
-    if (admins <= 1) throw validacao("O sistema precisa de pelo menos um administrador ativo.");
-  }
 
   const { anterior, novo, mudou } = diferenca(atual as Record<string, unknown>, dados);
   if (!mudou) return atual;
 
   return db.$transaction(async (tx) => {
+    if (deixaDeSerAdmin) {
+      // Trava as linhas dos admins ativos para que rebaixamentos simultâneos não zerem os administradores.
+      const admins = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM usuario WHERE perfil = 'ADMIN' AND ativo FOR UPDATE`;
+      if (admins.length <= 1) throw validacao("O sistema precisa de pelo menos um administrador ativo.");
+    }
     const u = await tx.usuario.update({ where: { id }, data: dados, select: CAMPOS_PUBLICOS });
     if (!dados.ativo || dados.perfil !== atual.perfil) await tx.sessao.deleteMany({ where: { usuarioId: id } });
     await registrarAuditoria(tx, { usuarioId: ator.id, entidade: "usuario", registroId: id, acao: "EDITAR", valorAnterior: anterior, valorNovo: novo });

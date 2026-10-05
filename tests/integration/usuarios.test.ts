@@ -78,6 +78,24 @@ describe("usuários — regras", () => {
     expect((await db.usuario.findUnique({ where: { id: outroAdmin.id } }))?.perfil).toBe("ASSESSOR");
   });
 
+  it("apagar telefone e cargo grava vazio", async () => {
+    const admin = await criarUsuarioTeste("ADMIN");
+    const { usuario } = await criarUsuario(db, admin, { ...novo, telefone: "(31) 99999-0000", cargo: "Assessora" });
+    const u = await atualizarUsuario(db, admin, usuario.id, { ...novo, email: usuario.email, telefone: "", cargo: "  ", ativo: true });
+    expect(u.telefone).toBeNull();
+    expect(u.cargo).toBeNull();
+  });
+
+  it("rebaixamentos simultâneos não zeram os administradores", async () => {
+    const a = await criarUsuarioTeste("ADMIN");
+    const b = await criarUsuarioTeste("ADMIN");
+    const rebaixar = (ator: typeof a, alvo: typeof a) =>
+      erroDe(atualizarUsuario(db, ator, alvo.id, { nome: alvo.nome, email: alvo.email, perfil: "ASSESSOR", ativo: true }));
+    const r = await Promise.all([rebaixar(a, b), rebaixar(b, a)]);
+    expect(r.sort()).toEqual(["SEM_ERRO", "VALIDACAO"]);
+    expect(await db.usuario.count({ where: { perfil: "ADMIN", ativo: true } })).toBe(1);
+  });
+
   it("redefinir senha derruba sessões e desbloqueia", async () => {
     const admin = await criarUsuarioTeste("ADMIN");
     const alvo = await criarUsuarioTeste("ASSESSOR");
