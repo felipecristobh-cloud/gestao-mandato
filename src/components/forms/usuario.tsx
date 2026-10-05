@@ -57,7 +57,7 @@ export function FormUsuario({
         </div>
         <div>
           <Rotulo htmlFor="perfil">Perfil de acesso</Rotulo>
-          <Selecao id="perfil" name="perfil" required defaultValue={valores?.perfil ?? "ASSESSOR"}>
+          <Selecao key={valores?.perfil} id="perfil" name="perfil" required defaultValue={valores?.perfil ?? "ASSESSOR"}>
             {PERFIS.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
           </Selecao>
         </div>
