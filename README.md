@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gestão do Mandato
 
-## Getting Started
+Sistema de gestão do mandato do vereador Pedro Patrus (CRM parlamentar):
+**problema → atuação → articulação → recurso → execução → resultado**.
 
-First, run the development server:
+> Estado: **Fase 1 — Fundação** (login, usuários, perfis, permissões, auditoria, navegação).
+> Demandas, emendas, mandatos, entidades, agenda, dashboard, relatórios e mapa vêm nas próximas fases.
+
+## Rodar localmente
+
+Requisitos: Node 22, Docker.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env          # ajuste SEED_SENHA
+docker compose up -d db       # PostgreSQL 16 em localhost:5432
+npm install
+npm run db:migrate            # aplica as migrations
+npm run db:seed               # 9 regionais + 5 usuários fictícios
+npm run dev                   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Usuários do seed (senha = `SEED_SENHA`, troca obrigatória no 1º acesso):
+`admin@exemplo.local`, `coordenacao@exemplo.local`, `assessor@exemplo.local`, `assessor2@exemplo.local`, `consulta@exemplo.local`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Nunca use dados reais de cidadãos em desenvolvimento ou testes.**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Comandos
 
-## Learn More
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | servidor de desenvolvimento |
+| `npm run build` / `npm start` | build e servidor de produção |
+| `npm run typecheck` | TypeScript |
+| `npm run lint` | ESLint |
+| `npm test` | testes (unitários + integração; recria o banco `gestao_test`) |
+| `npm run db:migrate` | cria/aplica migrations em dev |
+| `npm run db:deploy` | aplica migrations em homologação/produção |
+| `npm run db:seed` | seed de desenvolvimento (bloqueado em produção) |
 
-To learn more about Next.js, take a look at the following resources:
+Os testes de integração usam `DATABASE_URL_TEST` (precisa conter `test` no nome — proteção contra apagar o banco errado).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Estrutura
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+prisma/               schema, migrations, seed
+src/app/(auth)/       login, troca de senha
+src/app/(app)/        área autenticada (layout com menu)
+src/app/api/health    health check (GET → {status:"ok"})
+src/components/       UI, formulários, layout
+src/lib/              utilitários puros (máscaras, validação Zod)
+src/server/auth/      senha (Argon2), sessão, login, Server Actions
+src/server/authz/     matriz de permissões
+src/server/audit/     registro de auditoria
+src/server/services/  regras de negócio (usadas por actions e testes)
+tests/                unit/ e integration/
+docs/adr/             decisões de arquitetura
+```
 
-## Deploy on Vercel
+## Segurança
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Senhas com Argon2id; política mínima de 10 caracteres com letra e número.
+- Sessão opaca: o cookie `gm_sessao` (httpOnly, SameSite=Lax, Secure em produção) guarda um token aleatório; o banco guarda só o SHA-256 dele. Expira em 8 h.
+- A cada requisição o usuário é revalidado no banco — desativado perde acesso na hora.
+- 5 senhas erradas → bloqueio de 15 min. Toda falha fica na auditoria.
+- Permissões checadas no servidor em toda página e ação (`exigir`, `exigirPermissaoPagina`).
+- Auditoria na mesma transação da alteração, sem hashes ou tokens.
+- Headers: `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS. Site marcado `noindex`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy (homologação, custo zero)
+
+1. Criar projeto no **Supabase** (Free) e copiar a connection string *pooled* para `DATABASE_URL` (com `?pgbouncer=true`) e a *direct* para `DIRECT_URL` se necessário.
+2. Importar o repositório na **Vercel** (Hobby). Variáveis: `DATABASE_URL`.
+3. Build command: `npx prisma migrate deploy && npm run build`.
+4. Criar o primeiro Admin com `PERMITIR_SEED=1 SEED_SENHA=... npm run db:seed` apontando para o banco de homologação, e trocar a senha no 1º acesso.
+
+Detalhes e alternativas na entrega da Fase 0 e em `docs/adr/`.
