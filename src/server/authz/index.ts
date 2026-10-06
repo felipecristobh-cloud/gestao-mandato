@@ -1,6 +1,8 @@
 import type { Perfil } from "@prisma/client";
 import { proibido } from "@/server/errors";
 
+export const proibir = proibido;
+
 export type Permissao =
   | "usuarios:gerenciar"
   | "auditoria:ver"
