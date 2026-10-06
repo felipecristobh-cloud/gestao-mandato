@@ -56,6 +56,14 @@ tests/                unit/ e integration/
 docs/adr/             decisões de arquitetura
 ```
 
+## Demandas (Fase 2)
+
+- `/demandas`: lista com busca (protocolo, solicitante, endereço, descrição) e filtros combinados de status, prazo, tema, regional, bairro, responsável e prioridade; contadores de abertas, atrasadas, vencendo em 7 dias, sem responsável e minhas.
+- `/demandas/nova`: cadastro rápido com protocolo automático e alerta de duplicidade.
+- `/demandas/[id]`: detalhe, mudança de status, encaminhamento a órgão, retorno, comentários e histórico.
+- O seed cria temas, órgãos, 27 bairros (3 por regional) e 20 demandas fictícias (só se o banco não tiver nenhuma).
+- Decisões em [docs/adr/0003-demandas.md](docs/adr/0003-demandas.md).
+
 ## Segurança
 
 - Senhas com Argon2id; política mínima de 10 caracteres com letra e número.

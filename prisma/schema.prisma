@@ -44,6 +44,12 @@ model Usuario {
   sessoes   Sessao[]
   auditoria AuditLog[]
 
+  demandasResponsavel Demanda[]          @relation("DemandaResponsavel")
+  demandasCriadas     Demanda[]          @relation("DemandaCriadoPor")
+  pessoasCriadas      Pessoa[]
+  historicoDemandas   DemandaHistorico[]
+  encaminhamentos     Encaminhamento[]
+
   @@map("usuario")
 }
 
@@ -66,7 +72,193 @@ model Regional {
   nome   String @unique
   codigo String @unique
 
+  bairros Bairro[]
+
   @@map("regional")
+}
+
+enum Esfera {
+  MUNICIPAL
+  ESTADUAL
+  FEDERAL
+}
+
+enum StatusDemanda {
+  NOVA
+  EM_ANALISE
+  ENCAMINHADA
+  AGUARDANDO_RETORNO
+  EM_ANDAMENTO
+  RESOLVIDA
+  NAO_RESOLVIDA
+  CANCELADA
+}
+
+enum TipoDemanda {
+  SOLICITACAO
+  RECLAMACAO
+  DENUNCIA
+  SUGESTAO
+  PEDIDO_INFORMACAO
+  OUTRO
+}
+
+enum Prioridade {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum TipoHistorico {
+  CRIACAO
+  EDICAO
+  STATUS
+  RESPONSAVEL
+  ENCAMINHAMENTO
+  RETORNO
+  COMENTARIO
+}
+
+model Bairro {
+  id         Int    @id @default(autoincrement())
+  nome       String
+  regionalId Int    @map("regional_id")
+
+  regional Regional  @relation(fields: [regionalId], references: [id])
+  pessoas  Pessoa[]
+  demandas Demanda[]
+
+  @@unique([nome, regionalId])
+  @@map("bairro")
+}
+
+model Tema {
+  id    Int     @id @default(autoincrement())
+  nome  String  @unique
+  ativo Boolean @default(true)
+
+  demandas Demanda[]
+
+  @@map("tema")
+}
+
+model Orgao {
+  id      Int     @id @default(autoincrement())
+  nome    String  @unique
+  sigla   String?
+  esfera  Esfera  @default(MUNICIPAL)
+  contato String?
+  ativo   Boolean @default(true)
+
+  demandas        Demanda[]
+  encaminhamentos Encaminhamento[]
+
+  @@map("orgao")
+}
+
+/// Cidadão solicitante. Dado pessoal (LGPD): contato só aparece para quem pode ver.
+model Pessoa {
+  id           String   @id @default(uuid()) @db.Uuid
+  nome         String
+  telefone     String?
+  email        String?
+  endereco     String?
+  bairroId     Int?     @map("bairro_id")
+  criadoPorId  String?  @map("criado_por_id") @db.Uuid
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  bairro    Bairro?   @relation(fields: [bairroId], references: [id])
+  criadoPor Usuario?  @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+  demandas  Demanda[]
+
+  @@index([telefone])
+  @@map("pessoa")
+}
+
+/// Contador de protocolo por ano (DEM-2026-00001).
+model ProtocoloSeq {
+  ano    Int @id
+  ultimo Int
+
+  @@map("protocolo_seq")
+}
+
+model Demanda {
+  id            String        @id @default(uuid()) @db.Uuid
+  protocolo     String        @unique
+  pessoaId      String        @map("pessoa_id") @db.Uuid
+  endereco      String?
+  bairroId      Int?          @map("bairro_id")
+  temaId        Int           @map("tema_id")
+  tipo          TipoDemanda   @default(SOLICITACAO)
+  descricao     String
+  prioridade    Prioridade    @default(MEDIA)
+  status        StatusDemanda @default(NOVA)
+  prazo         DateTime?     @db.Date
+  responsavelId String?       @map("responsavel_id") @db.Uuid
+  orgaoId       Int?          @map("orgao_id")
+  dataEntrada   DateTime      @default(now()) @map("data_entrada") @db.Date
+  dataConclusao DateTime?     @map("data_conclusao") @db.Date
+  observacoes   String?
+  criadoPorId   String?       @map("criado_por_id") @db.Uuid
+  criadoEm      DateTime      @default(now()) @map("criado_em")
+  atualizadoEm  DateTime      @updatedAt @map("atualizado_em")
+
+  pessoa          Pessoa             @relation(fields: [pessoaId], references: [id])
+  bairro          Bairro?            @relation(fields: [bairroId], references: [id])
+  tema            Tema               @relation(fields: [temaId], references: [id])
+  orgao           Orgao?             @relation(fields: [orgaoId], references: [id])
+  responsavel     Usuario?           @relation("DemandaResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  criadoPor       Usuario?           @relation("DemandaCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  historico       DemandaHistorico[]
+  encaminhamentos Encaminhamento[]
+
+  @@index([status])
+  @@index([prazo])
+  @@index([responsavelId])
+  @@index([bairroId])
+  @@index([temaId])
+  @@map("demanda")
+}
+
+model DemandaHistorico {
+  id             String         @id @default(uuid()) @db.Uuid
+  demandaId      String         @map("demanda_id") @db.Uuid
+  usuarioId      String?        @map("usuario_id") @db.Uuid
+  data           DateTime       @default(now())
+  tipo           TipoHistorico
+  statusAnterior StatusDemanda? @map("status_anterior")
+  statusNovo     StatusDemanda? @map("status_novo")
+  descricao      String
+
+  demanda Demanda  @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([demandaId, data])
+  @@map("demanda_historico")
+}
+
+model Encaminhamento {
+  id           String    @id @default(uuid()) @db.Uuid
+  demandaId    String    @map("demanda_id") @db.Uuid
+  orgaoId      Int       @map("orgao_id")
+  usuarioId    String?   @map("usuario_id") @db.Uuid
+  data         DateTime  @default(now()) @db.Date
+  protocolo    String?
+  descricao    String
+  prazoRetorno DateTime? @map("prazo_retorno") @db.Date
+  retorno      String?
+  dataRetorno  DateTime? @map("data_retorno") @db.Date
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+
+  demanda Demanda  @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  orgao   Orgao    @relation(fields: [orgaoId], references: [id])
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([demandaId])
+  @@map("encaminhamento")
 }
 
 model AuditLog {
