@@ -80,8 +80,9 @@ describe("demandas — cadastro", () => {
   it("pode vincular a um solicitante já cadastrado sem duplicar a pessoa", async () => {
     const ator = await criarUsuarioTeste("ASSESSOR");
     const d1 = await criarDemanda(db, ator, entrada());
-    await criarDemanda(db, ator, entrada({ pessoaId: d1.pessoaId, descricao: "Outra demanda da mesma pessoa." }));
+    const d2 = await criarDemanda(db, ator, entrada({ pessoaId: d1.pessoaId, descricao: "Outra demanda da mesma pessoa.", endereco: "", bairroId: "" }));
     expect(await db.pessoa.count()).toBe(1);
+    expect(d2).toMatchObject({ endereco: "Rua Fictícia, 100", bairroId: base.bairro.id });
   });
 });
 

@@ -218,7 +218,14 @@ export async function criarDemanda(db: Db, ator: Ator, entrada: DemandaCriar, me
   if (!r.success) throw primeiroErro(r);
   const { solicitanteNome, telefone, email, pessoaId, status, ...campos } = r.data;
   await validarReferencias(db, campos);
-  if (pessoaId && !(await db.pessoa.findUnique({ where: { id: pessoaId } }))) throw validacao("Solicitante não encontrado.");
+  if (pessoaId) {
+    const existente = await db.pessoa.findUnique({ where: { id: pessoaId } });
+    if (!existente) throw validacao("Solicitante não encontrado.");
+    if (!campos.endereco && !campos.bairroId) {
+      campos.endereco = existente.endereco;
+      campos.bairroId = existente.bairroId;
+    }
+  }
 
   return db.$transaction(async (tx) => {
     let idPessoa = pessoaId;
