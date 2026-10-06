@@ -88,18 +88,27 @@ export async function obterParlamentar(db: Db, ator: Ator, id: string) {
     where: { id },
     include: {
       criadoPor: { select: { nome: true } },
-      mandatos: { orderBy: { dataInicio: "desc" }, include: { _count: { select: { demandas: true } } } },
+      mandatos: { orderBy: { dataInicio: "desc" }, include: { _count: { select: { demandas: true, emendas: true } } } },
     },
   });
   if (!p) throw naoEncontrado("Parlamentar não encontrado.");
   const idsMandatos = p.mandatos.map((m) => m.id);
-  const [vinculos, historico] = await Promise.all([
+  const [vinculos, emendas, historico] = await Promise.all([
     db.demandaMandato.findMany({
       where: { mandatoId: { in: idsMandatos } },
       orderBy: { criadoEm: "desc" },
       take: 100,
       include: {
         demanda: { select: { id: true, protocolo: true, status: true, descricao: true, tema: { select: { nome: true } } } },
+        mandato: { select: { legislatura: true, dataInicio: true, dataFim: true, cargo: true } },
+      },
+    }),
+    db.emendaMandato.findMany({
+      where: { mandatoId: { in: idsMandatos } },
+      orderBy: { criadoEm: "desc" },
+      take: 100,
+      include: {
+        emenda: { select: { id: true, codigo: true, numero: true, ano: true, esfera: true, status: true, objeto: true, valorIndicado: true, valorAprovado: true } },
         mandato: { select: { legislatura: true, dataInicio: true, dataFim: true, cargo: true } },
       },
     }),
@@ -110,7 +119,7 @@ export async function obterParlamentar(db: Db, ator: Ator, id: string) {
       include: { usuario: { select: { nome: true } } },
     }),
   ]);
-  return { ...p, vinculos, historico, podeEditar: podeEditarParlamentar(ator, p) };
+  return { ...p, vinculos, emendas, historico, podeEditar: podeEditarParlamentar(ator, p) };
 }
 
 /** Mandatos de parceiros (nunca o próprio) para vincular a demandas. */
@@ -238,7 +247,7 @@ export async function criarMandato(db: Db, ator: Ator, parlamentarId: string, en
 }
 
 async function carregarMandatoParaEditar(db: Db | Tx, ator: Ator, id: string) {
-  const m = await db.mandato.findUnique({ where: { id }, include: { parlamentar: true, _count: { select: { demandas: true } } } });
+  const m = await db.mandato.findUnique({ where: { id }, include: { parlamentar: true, _count: { select: { demandas: true, emendas: true } } } });
   if (!m) throw naoEncontrado("Mandato não encontrado.");
   if (!podeEditarParlamentar(ator, m.parlamentar)) throw proibir("Você só pode editar parlamentares que você cadastrou.");
   return m;
@@ -264,6 +273,7 @@ export async function atualizarMandato(db: Db, ator: Ator, id: string, entrada: 
 export async function excluirMandato(db: Db, ator: Ator, id: string, meta: Meta = {}) {
   const m = await carregarMandatoParaEditar(db, ator, id);
   if (m._count.demandas > 0) throw validacao("Este mandato tem demandas vinculadas. Remova os vínculos antes de excluir.");
+  if (m._count.emendas > 0) throw validacao("Este mandato tem emendas vinculadas. Remova os vínculos antes de excluir.");
   const { parlamentar: _p, _count: _c, ...dados } = m;
   await db.$transaction(async (tx) => {
     await tx.mandato.delete({ where: { id } });
