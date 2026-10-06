@@ -4,6 +4,10 @@ import type { ReactNode } from "react";
 import { prisma } from "@/server/db";
 import { exigirPermissaoPagina } from "@/server/auth/current";
 import { opcoesDemanda } from "@/server/services/demandas";
+import { opcoesMandatosParceiros, rotuloMandato } from "@/server/services/parlamentares";
+import { desvincularMandatoAction, vincularMandatoAction } from "@/server/services/parlamentares-actions";
+import { BotaoConfirmar, FormVinculoMandato } from "@/components/forms/parlamentar";
+import { ROTULO_CARGO, ROTULO_PARTICIPACAO } from "@/lib/parlamentares";
 import { alterarStatusAction, comentarAction, encaminharAction, registrarRetornoAction } from "@/server/services/demandas-actions";
 import { Aviso, CabecalhoPagina, Cartao, Selo, classeBotao } from "@/components/ui";
 import { FormComentario, FormEncaminhar, FormRetorno, FormStatus } from "@/components/forms/demanda";
@@ -29,7 +33,7 @@ export default async function DemandaPage({ params, searchParams }: { params: Pr
   const ator = await exigirPermissaoPagina("dados:ver");
   const [{ id }, { criada }] = await Promise.all([params, searchParams]);
   const d = await carregarDemanda(ator, id);
-  const opcoes = d.podeEditar ? await opcoesDemanda(prisma) : null;
+  const [opcoes, mandatosParceiros] = d.podeEditar ? await Promise.all([opcoesDemanda(prisma), opcoesMandatosParceiros(prisma)]) : [null, []];
   const prazo = rotuloPrazo(situacaoPrazo(d.prazo, d.status));
   const hoje = deISO(hojeISO()).getTime();
 
@@ -96,6 +100,32 @@ export default async function DemandaPage({ params, searchParams }: { params: Pr
               <details className="mt-4">
                 <summary className="cursor-pointer text-sm font-medium text-marca-800">+ Encaminhar a um órgão</summary>
                 <div className="mt-3"><FormEncaminhar acao={encaminharAction.bind(null, d.id)} orgaos={opcoes.orgaos} /></div>
+              </details>
+            )}
+          </Cartao>
+
+          <Cartao>
+            <h2 className="mb-3 text-base font-semibold">Mandatos parceiros</h2>
+            {d.mandatos.length === 0 && <p className="text-sm text-slate-500">Nenhum mandato parceiro vinculado.</p>}
+            <ul className="space-y-2">
+              {d.mandatos.map((v) => (
+                <li key={v.id} className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 p-3 text-sm">
+                  <Selo cor="azul">{ROTULO_PARTICIPACAO[v.tipo]}</Selo>
+                  <Link href={`/parlamentares/${v.mandato.parlamentar.id}`} className="font-medium text-marca-800 hover:underline">{v.mandato.parlamentar.nome}</Link>
+                  <span className="text-slate-600">{ROTULO_CARGO[v.mandato.cargo]}, {rotuloMandato(v.mandato)}</span>
+                  {v.observacoes && <span className="w-full text-slate-600">{v.observacoes}</span>}
+                  {d.podeEditar && (
+                    <span className="ml-auto">
+                      <BotaoConfirmar acao={desvincularMandatoAction.bind(null, d.id, v.id)} rotulo="Remover" pergunta="Remover este vínculo?" />
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {d.podeEditar && (
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm font-medium text-marca-800">+ Vincular mandato parceiro</summary>
+                <div className="mt-3"><FormVinculoMandato acao={vincularMandatoAction.bind(null, d.id)} opcoes={mandatosParceiros} /></div>
               </details>
             )}
           </Cartao>

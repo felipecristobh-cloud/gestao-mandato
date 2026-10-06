@@ -44,11 +44,14 @@ model Usuario {
   sessoes   Sessao[]
   auditoria AuditLog[]
 
-  demandasResponsavel Demanda[]          @relation("DemandaResponsavel")
-  demandasCriadas     Demanda[]          @relation("DemandaCriadoPor")
-  pessoasCriadas      Pessoa[]
-  historicoDemandas   DemandaHistorico[]
-  encaminhamentos     Encaminhamento[]
+  demandasResponsavel  Demanda[]          @relation("DemandaResponsavel")
+  demandasCriadas      Demanda[]          @relation("DemandaCriadoPor")
+  pessoasCriadas       Pessoa[]
+  historicoDemandas    DemandaHistorico[]
+  encaminhamentos      Encaminhamento[]
+  parlamentaresCriados Parlamentar[]
+  mandatosCriados      Mandato[]
+  vinculosMandato      DemandaMandato[]
 
   @@map("usuario")
 }
@@ -118,6 +121,7 @@ enum TipoHistorico {
   ENCAMINHAMENTO
   RETORNO
   COMENTARIO
+  ARTICULACAO
 }
 
 model Bairro {
@@ -214,6 +218,7 @@ model Demanda {
   criadoPor       Usuario?           @relation("DemandaCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
   historico       DemandaHistorico[]
   encaminhamentos Encaminhamento[]
+  mandatos        DemandaMandato[]
 
   @@index([status])
   @@index([prazo])
@@ -278,4 +283,92 @@ model AuditLog {
   @@index([entidade, registroId])
   @@index([data])
   @@map("audit_log")
+}
+
+enum CargoParlamentar {
+  VEREADOR
+  DEPUTADO_ESTADUAL
+  DEPUTADO_FEDERAL
+  SENADOR
+  OUTRO
+}
+
+/// Participação de um mandato numa demanda (e, na Fase 4, numa emenda). Autoria só existe quando cadastrada explicitamente.
+enum TipoParticipacao {
+  AUTOR
+  COAUTOR
+  ARTICULADOR
+  PARCEIRO
+  ACOMPANHAMENTO
+  EXECUCAO
+  INTERMEDIARIO
+}
+
+/// Agente político (dado público). `proprio` marca o titular do gabinete (só um).
+model Parlamentar {
+  id           String           @id @default(uuid()) @db.Uuid
+  nome         String
+  cargo        CargoParlamentar
+  partido      String?
+  esfera       Esfera
+  municipio    String?
+  uf           String?          @db.Char(2)
+  telefone     String?
+  email        String?
+  observacoes  String?
+  proprio      Boolean          @default(false)
+  ativo        Boolean          @default(true)
+  criadoPorId  String?          @map("criado_por_id") @db.Uuid
+  criadoEm     DateTime         @default(now()) @map("criado_em")
+  atualizadoEm DateTime         @updatedAt @map("atualizado_em")
+
+  criadoPor Usuario?  @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+  mandatos  Mandato[]
+
+  @@index([nome])
+  @@map("parlamentar")
+}
+
+/// Um período de mandato. Uma pessoa pode ter vários, inclusive em cargos diferentes.
+model Mandato {
+  id            String           @id @default(uuid()) @db.Uuid
+  parlamentarId String           @map("parlamentar_id") @db.Uuid
+  cargo         CargoParlamentar
+  esfera        Esfera
+  legislatura   String?
+  descricao     String?
+  partido       String?
+  municipio     String?
+  uf            String?          @db.Char(2)
+  dataInicio    DateTime         @map("data_inicio") @db.Date
+  dataFim       DateTime?        @map("data_fim") @db.Date
+  observacoes   String?
+  criadoPorId   String?          @map("criado_por_id") @db.Uuid
+  criadoEm      DateTime         @default(now()) @map("criado_em")
+  atualizadoEm  DateTime         @updatedAt @map("atualizado_em")
+
+  parlamentar Parlamentar      @relation(fields: [parlamentarId], references: [id], onDelete: Restrict)
+  criadoPor   Usuario?         @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+  demandas    DemandaMandato[]
+
+  @@index([parlamentarId])
+  @@map("mandato")
+}
+
+model DemandaMandato {
+  id          String           @id @default(uuid()) @db.Uuid
+  demandaId   String           @map("demanda_id") @db.Uuid
+  mandatoId   String           @map("mandato_id") @db.Uuid
+  tipo        TipoParticipacao
+  observacoes String?
+  usuarioId   String?          @map("usuario_id") @db.Uuid
+  criadoEm    DateTime         @default(now()) @map("criado_em")
+
+  demanda Demanda  @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  mandato Mandato  @relation(fields: [mandatoId], references: [id], onDelete: Restrict)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@unique([demandaId, mandatoId, tipo])
+  @@index([mandatoId])
+  @@map("demanda_mandato")
 }
