@@ -117,6 +117,10 @@ export async function obterDemanda(db: Db, ator: Ator, id: string) {
       criadoPor: { select: { id: true, nome: true } },
       historico: { orderBy: { data: "desc" }, include: { usuario: { select: { nome: true } } } },
       encaminhamentos: { orderBy: { criadoEm: "desc" }, include: { orgao: true, usuario: { select: { nome: true } } } },
+      mandatos: {
+        orderBy: { criadoEm: "asc" },
+        include: { mandato: { include: { parlamentar: { select: { id: true, nome: true, partido: true } } } }, usuario: { select: { nome: true } } },
+      },
     },
   });
   if (!d) throw naoEncontrado("Demanda não encontrada.");
