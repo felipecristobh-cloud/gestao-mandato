@@ -30,11 +30,20 @@ export type FiltrosDemanda = {
   status?: string;
   temaId?: string;
   regionalId?: string;
+  orgaoId?: string;
+  entradaDe?: string;
+  retorno?: string;
   bairroId?: string;
   prioridade?: string;
   responsavel?: string; // "eu" | "sem" | uuid
   prazo?: FiltroPrazo | string;
   pagina?: number;
+};
+
+/** Aberta e aguardando órgão: status "aguardando retorno" ou encaminhamento ainda sem retorno. */
+export const WHERE_AGUARDANDO_RETORNO: Prisma.DemandaWhereInput = {
+  status: { in: STATUS_ABERTOS },
+  OR: [{ status: "AGUARDANDO_RETORNO" }, { encaminhamentos: { some: { dataRetorno: null } } }],
 };
 
 function whereDemandas(ator: Ator, f: FiltrosDemanda, hoje = hojeISO()): Prisma.DemandaWhereInput {
@@ -54,6 +63,9 @@ function whereDemandas(ator: Ator, f: FiltrosDemanda, hoje = hojeISO()): Prisma.
   if (f.temaId && /^\d+$/.test(f.temaId)) e.push({ temaId: Number(f.temaId) });
   if (f.bairroId && /^\d+$/.test(f.bairroId)) e.push({ bairroId: Number(f.bairroId) });
   if (f.regionalId && /^\d+$/.test(f.regionalId)) e.push({ bairro: { regionalId: Number(f.regionalId) } });
+  if (f.orgaoId && /^\d+$/.test(f.orgaoId)) e.push({ orgaoId: Number(f.orgaoId) });
+  if (f.entradaDe && /^\d{4}-\d{2}-\d{2}$/.test(f.entradaDe)) e.push({ dataEntrada: { gte: deISO(f.entradaDe) } });
+  if (f.retorno === "pendente") e.push(WHERE_AGUARDANDO_RETORNO);
   if (f.prioridade && ["BAIXA", "MEDIA", "ALTA", "URGENTE"].includes(f.prioridade)) e.push({ prioridade: f.prioridade as Prioridade });
   if (f.responsavel === "eu") e.push({ responsavelId: ator.id });
   else if (f.responsavel === "sem") e.push({ responsavelId: null });

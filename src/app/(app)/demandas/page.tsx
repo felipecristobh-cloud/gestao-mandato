@@ -4,7 +4,7 @@ import { prisma } from "@/server/db";
 import { exigirPermissaoPagina } from "@/server/auth/current";
 import { pode } from "@/server/authz";
 import { contadoresDemandas, listarDemandas, opcoesDemanda, type FiltrosDemanda } from "@/server/services/demandas";
-import { CabecalhoPagina, Cartao, Campo, Rotulo, Selecao, Selo, classeBotao } from "@/components/ui";
+import { Aviso, CabecalhoPagina, Cartao, Campo, Rotulo, Selecao, Selo, classeBotao } from "@/components/ui";
 import { SelecaoBairro } from "@/components/forms/demanda";
 import {
   COR_STATUS, FILTROS_PRAZO, PRIORIDADES, ROTULO_PRIORIDADE, ROTULO_STATUS, STATUS, formatarData, rotuloPrazo, situacaoPrazo,
@@ -116,6 +116,19 @@ export default async function DemandasPage({ searchParams }: { searchParams: Pro
         </form>
       </Cartao>
 
+      {(sp.entradaDe || sp.retorno === "pendente" || sp.orgaoId) && (
+        <div className="mb-4">
+          <Aviso tipo="info">
+            Filtro vindo do dashboard:{" "}
+            {[
+              sp.entradaDe && /^\d{4}-\d{2}-\d{2}$/.test(sp.entradaDe) && `entrada a partir de ${sp.entradaDe.split("-").reverse().join("/")}`,
+              sp.retorno === "pendente" && "aguardando retorno de órgão",
+              sp.orgaoId && "órgão escolhido no gráfico",
+            ].filter(Boolean).join(" · ")}
+            . <Link href="/demandas" className="underline">Limpar</Link>
+          </Aviso>
+        </div>
+      )}
       <Cartao className="overflow-x-auto p-0">
         <table className="min-w-full text-sm">
           <caption className="sr-only">Lista de demandas</caption>
