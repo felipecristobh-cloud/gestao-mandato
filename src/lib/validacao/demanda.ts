@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PRIORIDADES, STATUS, TIPOS } from "@/lib/demandas";
+import { coordenadaOpcional } from "@/lib/mapa";
 
 const opcional = (max: number) => z.string().trim().max(max, `Máximo de ${max} caracteres.`).optional().nullable().transform((v) => v || null);
 
@@ -25,6 +26,8 @@ export const solicitanteSchema = z.object({
 export const demandaCamposSchema = z.object({
   endereco: opcional(200),
   bairroId: idInteiro("Bairro inválido."),
+  latitude: coordenadaOpcional("lat"),
+  longitude: coordenadaOpcional("lng"),
   temaId: idInteiro("Tema inválido.").refine((v) => v !== null, "Escolha o tema."),
   tipo: z.enum(TIPOS as [string, ...string[]]).default("SOLICITACAO"),
   descricao: z.string().trim().min(10, "Descreva a demanda (mínimo 10 caracteres).").max(4000),

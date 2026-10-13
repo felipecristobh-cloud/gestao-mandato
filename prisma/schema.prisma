@@ -142,6 +142,8 @@ model Bairro {
   id         Int    @id @default(autoincrement())
   nome       String
   regionalId Int    @map("regional_id")
+  latitude   Float?
+  longitude  Float?
 
   regional Regional  @relation(fields: [regionalId], references: [id])
   pessoas  Pessoa[]
@@ -216,6 +218,8 @@ model Demanda {
   pessoaId      String        @map("pessoa_id") @db.Uuid
   endereco      String?
   bairroId      Int?          @map("bairro_id")
+  latitude      Float?
+  longitude     Float?
   temaId        Int           @map("tema_id")
   tipo          TipoDemanda   @default(SOLICITACAO)
   descricao     String

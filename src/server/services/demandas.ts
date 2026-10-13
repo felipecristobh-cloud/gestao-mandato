@@ -18,7 +18,7 @@ function primeiroErro(r: { error: { issues: { message: string }[] } }) {
 }
 
 const ROTULO_CAMPO: Record<string, string> = {
-  endereco: "endereço", bairroId: "bairro", temaId: "tema", tipo: "tipo", descricao: "descrição", prioridade: "prioridade",
+  endereco: "endereço", bairroId: "bairro", latitude: "latitude", longitude: "longitude", temaId: "tema", tipo: "tipo", descricao: "descrição", prioridade: "prioridade",
   prazo: "prazo", responsavelId: "responsável", orgaoId: "órgão", entidadeId: "entidade", observacoes: "observações",
   solicitanteNome: "nome do solicitante", telefone: "telefone", email: "e-mail",
 };
@@ -209,8 +209,9 @@ export async function buscarSemelhantes(
 
 async function validarReferencias(
   db: Db | Tx,
-  d: { temaId?: number | null; bairroId?: number | null; orgaoId?: number | null; responsavelId?: string | null; entidadeId?: string | null },
+  d: { temaId?: number | null; bairroId?: number | null; latitude?: number | null; longitude?: number | null; orgaoId?: number | null; responsavelId?: string | null; entidadeId?: string | null },
 ) {
+  if ((d.latitude == null) !== (d.longitude == null)) throw validacao("Localização incompleta: informe latitude e longitude.");
   if (d.temaId && !(await db.tema.findFirst({ where: { id: d.temaId, ativo: true } }))) throw validacao("Tema inválido.");
   if (d.bairroId && !(await db.bairro.findUnique({ where: { id: d.bairroId } }))) throw validacao("Bairro inválido.");
   if (d.orgaoId && !(await db.orgao.findFirst({ where: { id: d.orgaoId, ativo: true } }))) throw validacao("Órgão inválido.");
@@ -293,7 +294,7 @@ export async function atualizarDemanda(db: Db, ator: Ator, id: string, entrada: 
   await validarReferencias(db, campos);
 
   const antes = {
-    endereco: atual.endereco, bairroId: atual.bairroId, temaId: atual.temaId, tipo: atual.tipo, descricao: atual.descricao,
+    endereco: atual.endereco, bairroId: atual.bairroId, latitude: atual.latitude, longitude: atual.longitude, temaId: atual.temaId, tipo: atual.tipo, descricao: atual.descricao,
     prioridade: atual.prioridade, prazo: atual.prazo, responsavelId: atual.responsavelId, orgaoId: atual.orgaoId, entidadeId: atual.entidadeId, observacoes: atual.observacoes,
   };
   const dDemanda = diferenca(antes as Record<string, unknown>, campos);
