@@ -4,7 +4,8 @@ import { prisma } from "@/server/db";
 import { exigirPermissaoPagina } from "@/server/auth/current";
 import { pode } from "@/server/authz";
 import { anosEmendas, listarEmendas } from "@/server/services/emendas";
-import { CabecalhoPagina, Cartao, Campo, Rotulo, Selecao, Selo, classeBotao } from "@/components/ui";
+import { DIAS_PRAZO_EMENDA, DIAS_SEM_MOVIMENTACAO } from "@/lib/dashboard";
+import { Aviso, CabecalhoPagina, Cartao, Campo, Rotulo, Selecao, Selo, classeBotao } from "@/components/ui";
 import { COR_STATUS_EMENDA, ROTULO_STATUS_EMENDA, ROTULO_TIPO_EMENDA, STATUS_EMENDA, formatarMoeda, resumoFinanceiro } from "@/lib/emendas";
 import { ESFERAS, ROTULO_ESFERA } from "@/lib/parlamentares";
 
@@ -105,6 +106,14 @@ export default async function EmendasPage({ searchParams }: { searchParams: Prom
         <Total rotulo="Saldo a pagar" valor={t.saldo} destaque />
       </section>
 
+      {(sp.alerta === "parada" || sp.alerta === "prazo") && (
+        <div className="mb-4">
+          <Aviso tipo="info">
+            Filtro vindo do dashboard: {sp.alerta === "parada" ? `sem movimentação há ${DIAS_SEM_MOVIMENTACAO} dias` : `prazo vencido ou em ${DIAS_PRAZO_EMENDA} dias`}.{" "}
+            <Link href="/emendas" className="underline">Limpar</Link>
+          </Aviso>
+        </div>
+      )}
       <Cartao className="overflow-x-auto p-0">
         <table className="min-w-full text-sm">
           <caption className="sr-only">Lista de emendas</caption>
