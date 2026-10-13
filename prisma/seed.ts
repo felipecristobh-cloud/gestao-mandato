@@ -1,4 +1,4 @@
-import { PrismaClient, type Esfera, type Perfil, type Prioridade, type StatusDemanda, type TipoDemanda, type TipoHistorico } from "@prisma/client";
+import { PrismaClient, type Esfera, type Perfil, type StatusCompromisso, type TipoCompromisso, type TipoEntidade, type Prioridade, type StatusDemanda, type TipoDemanda, type TipoHistorico } from "@prisma/client";
 import { hashSenha } from "../src/server/auth/password";
 import { deISO, hojeISO, somarDias } from "../src/lib/demandas";
 import { completarCnpj, decimalDe } from "../src/lib/emendas";
@@ -273,6 +273,88 @@ async function seedEmendas(usuarios: Map<string, string>) {
   return EMENDAS.length;
 }
 
+const TIPO_POR_NOME: [RegExp, TipoEntidade][] = [
+  [/^Associação/, "ASSOCIACAO"], [/^Coletivo/, "COLETIVO"], [/^Lar/, "OSC"], [/^Instituto/, "OSC"], [/^Caixa Escolar/, "ESCOLA"],
+];
+
+// Entidades fictícias: as beneficiárias das emendas do seed + algumas sem CNPJ.
+async function seedEntidades(usuarios: Map<string, string>) {
+  if ((await db.entidade.count()) > 0) return 0;
+  const autor = usuarios.get("coordenacao")!;
+  const bairros = await db.bairro.findMany({ orderBy: { id: "asc" }, take: 10, select: { id: true } });
+  const temas = await db.tema.findMany({ orderBy: { id: "asc" }, select: { id: true } });
+  const emendas = await db.emenda.findMany({ where: { cnpj: { not: null } }, orderBy: { codigo: "asc" } });
+  let n = 0;
+  const porCnpj = new Map<string, string>();
+  for (const e of emendas) {
+    const tipo = TIPO_POR_NOME.find(([re]) => re.test(e.beneficiario ?? ""))?.[1];
+    if (!tipo || !e.cnpj) continue;
+    let id = porCnpj.get(e.cnpj);
+    if (!id) {
+      const ent = await db.entidade.create({
+        data: {
+          nome: e.beneficiario!, cnpj: e.cnpj, tipo, temaId: temas.length ? temas[n % temas.length].id : null,
+          bairroId: bairros.length ? bairros[n % bairros.length].id : null, endereco: `Rua Fictícia, ${100 + n * 10}`,
+          telefone: `(31) 3000-00${String(n).padStart(2, "0")}`, email: `contato${n}@entidade.exemplo`, responsavel: `Responsável Fictício ${n + 1}`,
+          criadoPorId: autor,
+        },
+      });
+      id = ent.id;
+      porCnpj.set(e.cnpj, id);
+      n += 1;
+    }
+    await db.emenda.update({ where: { id: e.id }, data: { entidadeId: id } });
+  }
+  const extras: [string, TipoEntidade][] = [["Escola Municipal Exemplo", "ESCOLA"], ["Cooperativa Exemplo de Reciclagem", "COOPERATIVA"], ["Comunidade Religiosa Exemplo", "RELIGIOSA"]];
+  for (const [nome, tipo] of extras) {
+    await db.entidade.create({ data: { nome, tipo, bairroId: bairros.length ? bairros[n % bairros.length].id : null, criadoPorId: usuarios.get("assessor") ?? autor } });
+    n += 1;
+  }
+  const ents = await db.entidade.findMany({ orderBy: { nome: "asc" }, select: { id: true } });
+  const demandas = await db.demanda.findMany({ orderBy: { protocolo: "asc" }, take: 3, select: { id: true } });
+  for (const [i, d] of demandas.entries()) await db.demanda.update({ where: { id: d.id }, data: { entidadeId: ents[i % ents.length].id } });
+  const parceiro = await db.mandato.findFirst({ where: { parlamentar: { proprio: false, ativo: true } }, orderBy: { dataInicio: "desc" } });
+  if (parceiro && ents[0]) await db.entidadeMandato.create({ data: { entidadeId: ents[0].id, mandatoId: parceiro.id, tipo: "PARCEIRO", usuarioId: autor } });
+  return n;
+}
+
+const horario = (dias: number, hora: number, duracaoH = 1) => {
+  const inicio = new Date(`${somarDias(hojeISO(), dias)}T${String(hora).padStart(2, "0")}:00:00-03:00`);
+  return { inicio, fim: new Date(inicio.getTime() + duracaoH * 3_600_000) };
+};
+
+async function seedAgenda(usuarios: Map<string, string>) {
+  if ((await db.compromisso.count()) > 0) return 0;
+  const coord = usuarios.get("coordenacao")!;
+  const assessor = usuarios.get("assessor") ?? coord;
+  const assessor2 = usuarios.get("assessor2") ?? coord;
+  const bairros = await db.bairro.findMany({ orderBy: { id: "asc" }, take: 5, select: { id: true } });
+  const ent = await db.entidade.findFirst({ orderBy: { nome: "asc" } });
+  const dem = await db.demanda.findFirst({ orderBy: { protocolo: "asc" } });
+  const em = await db.emenda.findFirst({ orderBy: { codigo: "asc" } });
+  const itens: { titulo: string; tipo: TipoCompromisso; status: StatusCompromisso; quando: ReturnType<typeof horario>; vereador?: boolean; resp: string; part: string[]; vinculo?: Record<string, string>; resultado?: string }[] = [
+    { titulo: "Reunião com a associação de moradores (fictícia)", tipo: "REUNIAO_ENTIDADE", status: "REALIZADO", quando: horario(-6, 19, 2), resp: assessor, part: [assessor2], vinculo: ent ? { entidadeId: ent.id } : undefined, resultado: "Levantadas demandas de iluminação e calçamento. Encaminhar ofício à secretaria." },
+    { titulo: "Visita à obra da quadra (fictícia)", tipo: "VISITA", status: "CONFIRMADO", quando: horario(1, 10), vereador: true, resp: coord, part: [assessor], vinculo: em ? { emendaId: em.id } : undefined },
+    { titulo: "Plenária regional de saúde (fictícia)", tipo: "PLENARIA", status: "SOLICITADO", quando: horario(2, 18, 3), vereador: true, resp: assessor, part: [] },
+    { titulo: "Audiência pública sobre mobilidade (fictícia)", tipo: "AUDIENCIA", status: "CONFIRMADO", quando: horario(3, 14, 2), vereador: true, resp: coord, part: [assessor, assessor2] },
+    { titulo: "Atendimento sobre demanda de poda (fictício)", tipo: "REUNIAO", status: "CONFIRMADO", quando: horario(1, 10, 1), resp: assessor, part: [], vinculo: dem ? { demandaId: dem.id } : undefined },
+    { titulo: "Evento comunitário adiado (fictício)", tipo: "EVENTO", status: "ADIADO", quando: horario(5, 9, 4), resp: assessor2, part: [] },
+  ];
+  for (const [i, c] of itens.entries()) {
+    const criado = await db.compromisso.create({
+      data: {
+        titulo: c.titulo, tipo: c.tipo, status: c.status, ...c.quando, agendaVereador: c.vereador ?? false, local: "Endereço fictício",
+        bairroId: bairros.length ? bairros[i % bairros.length].id : null, pauta: "Pauta fictícia para demonstração.",
+        resultado: c.resultado ?? null, responsavelId: c.resp, criadoPorId: coord,
+        participantes: { create: c.part.map((usuarioId) => ({ usuarioId })) },
+      },
+    });
+    await db.compromissoHistorico.create({ data: { compromissoId: criado.id, usuarioId: coord, tipo: "CRIACAO", statusNovo: c.status, descricao: "Compromisso fictício cadastrado pelo seed." } });
+    if (c.vinculo) await db.compromissoVinculo.create({ data: { compromissoId: criado.id, ...c.vinculo, usuarioId: coord } });
+  }
+  return itens.length;
+}
+
 async function main() {
   if (process.env.NODE_ENV === "production" && process.env.PERMITIR_SEED !== "1") {
     throw new Error("Seed bloqueado em produção (defina PERMITIR_SEED=1 só em homologação).");
@@ -294,7 +376,9 @@ async function main() {
   const demandas = await seedDemandas(ids);
   const parlamentares = await seedParlamentares(ids);
   const emendas = await seedEmendas(ids);
-  console.log(`Seed: ${REGIONAIS.length} regionais, ${USUARIOS.length} usuários fictícios, ${demandas} demandas fictícias novas, ${parlamentares} parlamentares novos, ${emendas} emendas novas.`);
+  const entidades = await seedEntidades(ids);
+  const compromissos = await seedAgenda(ids);
+  console.log(`Seed: ${REGIONAIS.length} regionais, ${USUARIOS.length} usuários fictícios, ${demandas} demandas fictícias novas, ${parlamentares} parlamentares novos, ${emendas} emendas novas, ${entidades} entidades novas, ${compromissos} compromissos novos.`);
 }
 
 main().finally(() => db.$disconnect());

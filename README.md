@@ -3,8 +3,8 @@
 Sistema de gestão do mandato do vereador Pedro Patrus (CRM parlamentar):
 **problema → atuação → articulação → recurso → execução → resultado**.
 
-> Estado: **Fase 4 — Emendas** (sobre as Fases 1 — Fundação, 2 — Demandas e 3 — Parlamentares e Mandatos).
-> Entidades, agenda, dashboard, relatórios e mapa vêm nas próximas fases.
+> Estado: **Fase 5 — Entidades e Agenda** (sobre as Fases 1 — Fundação, 2 — Demandas, 3 — Parlamentares e Mandatos e 4 — Emendas).
+> Dashboard completo, relatórios, mapa e upload de documentos vêm nas próximas fases.
 
 ## Rodar localmente
 
@@ -81,6 +81,17 @@ docs/adr/             decisões de arquitetura
 - Autoria só existe quando o vínculo **Autor**/**Coautor** é cadastrado; acompanhar, articular ou executar nunca vira autoria.
 - O seed cria 10 emendas fictícias (só se não houver emendas).
 - Decisões em [docs/adr/0005-emendas.md](docs/adr/0005-emendas.md).
+
+## Entidades e Agenda (Fase 5)
+
+- `/entidades`: lista com busca (nome, CNPJ, responsável) e filtros de tipo, área, regional, bairro e situação. Cadastro com aviso de duplicidade por nome parecido ou CNPJ igual (CNPJ único, com dígito verificador).
+- `/entidades/[id]`: dados, contato (mascarado para Consulta), demandas, emendas, reuniões, mandatos relacionados (parceria, acompanhamento etc. — nunca autoria) e histórico.
+- Demanda ganha **entidade relacionada**; emenda ganha **entidade beneficiária** (o texto livre continua; se ficar em branco, nome e CNPJ vêm do cadastro).
+- `/agenda`: visões semana, mês e lista, com filtros de texto, tipo, status, pessoa e agenda do vereador. Horários sempre no fuso de BH.
+- `/agenda/nova` e `/agenda/[id]`: 8 tipos de compromisso, início/fim, local, bairro, responsável, participantes internos, pauta, status (adiar/cancelar pedem motivo), resultado e encaminhamentos (a "ata", só depois de realizado), vínculos com demandas, emendas, entidades, parlamentares e mandatos, e alerta de choque de horário entre as mesmas pessoas.
+- Agenda do vereador: qualquer usuário que cadastra pode **solicitar**; só Coordenação/Admin **confirmam** ou mudam o horário de um compromisso já confirmado.
+- O seed cria 9 entidades (as beneficiárias das emendas + 3 sem CNPJ) e 6 compromissos em volta da data atual (só se não houver nenhum).
+- Decisões em [docs/adr/0006-entidades-agenda.md](docs/adr/0006-entidades-agenda.md).
 
 ## Segurança
 

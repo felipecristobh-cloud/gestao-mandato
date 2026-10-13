@@ -63,6 +63,7 @@ export default async function DemandaPage({ params, searchParams }: { params: Pr
               <Item rotulo="Endereço">{d.endereco}</Item>
               <Item rotulo="Bairro / regional">{d.bairro ? `${d.bairro.nome} · ${d.bairro.regional.nome}` : ""}</Item>
               <Item rotulo="Órgão">{d.orgao ? d.orgao.sigla ?? d.orgao.nome : ""}</Item>
+              <Item rotulo="Entidade">{d.entidade ? <Link href={`/entidades/${d.entidade.id}`} className="text-marca-800 hover:underline">{d.entidade.nome}</Link> : ""}</Item>
               <Item rotulo="Conclusão">{d.dataConclusao ? formatarData(d.dataConclusao) : ""}</Item>
               <Item rotulo="Cadastrada por">{d.criadoPor?.nome}</Item>
             </dl>

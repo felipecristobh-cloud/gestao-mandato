@@ -16,7 +16,7 @@ export type EstadoDemanda = { erro?: string; ok?: string; valores?: Valores; sem
 
 const CAMPOS = [
   "pessoaId", "solicitanteNome", "telefone", "email", "endereco", "bairroId", "temaId", "tipo", "descricao",
-  "prioridade", "status", "prazo", "responsavelId", "orgaoId", "observacoes",
+  "prioridade", "status", "prazo", "responsavelId", "orgaoId", "entidadeId", "observacoes",
 ];
 
 function valoresDoForm(form: FormData, campos: string[] = CAMPOS): Valores {
