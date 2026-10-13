@@ -31,6 +31,44 @@ const BAIRROS: Record<string, string[]> = {
   VENDA_NOVA: ["Venda Nova", "Mantiqueira", "Céu Azul"],
 };
 
+// Centro aproximado de cada bairro (OpenStreetMap/Nominatim), usado como localização aproximada no mapa.
+const COORD_BAIRRO: Record<string, [number, number]> = {
+  "Barreiro": [-19.97698, -44.01855],
+  "Milionários": [-19.98051, -44.00183],
+  "Lindéia": [-19.97741, -44.05064],
+  "Centro": [-19.91933, -43.94035],
+  "Savassi": [-19.93725, -43.93558],
+  "Serra": [-19.94056, -43.91842],
+  "Santa Tereza": [-19.91489, -43.91705],
+  "Floresta": [-19.91275, -43.9302],
+  "Sagrada Família": [-19.90033, -43.92372],
+  "Cidade Nova": [-19.88924, -43.92486],
+  "São Paulo": [-19.86869, -43.92394],
+  "Ipiranga": [-19.88177, -43.93227],
+  "Padre Eustáquio": [-19.9143, -43.97936],
+  "Carlos Prates": [-19.91355, -43.96575],
+  "Caiçara": [-19.8997, -43.96526],
+  "Primeiro de Maio": [-19.86097, -43.92911],
+  "Tupi": [-19.83663, -43.92556],
+  "Jaqueline": [-19.80335, -43.93235],
+  "Buritis": [-19.97658, -43.96742],
+  "Gameleira": [-19.93104, -43.98719],
+  "Salgado Filho": [-19.94315, -43.98296],
+  "Ouro Preto": [-19.87225, -43.98299],
+  "Santa Amélia": [-19.83908, -43.97788],
+  "Castelo": [-19.8793, -43.9996],
+  "Venda Nova": [-19.81663, -43.95793],
+  "Mantiqueira": [-19.79287, -43.98333],
+  "Céu Azul": [-19.82275, -44.00398],
+};
+
+// Metade das demandas fictícias ganha um ponto perto do centro do bairro; a outra metade fica "aproximada".
+function pontoFicticio(bairro: string, i: number) {
+  const c = COORD_BAIRRO[bairro];
+  if (!c || i % 2 === 1) return {};
+  return { latitude: Math.round((c[0] + 0.003 * Math.sin(i)) * 1e6) / 1e6, longitude: Math.round((c[1] + 0.003 * Math.cos(i)) * 1e6) / 1e6 };
+}
+
 const TEMAS = [
   "Assistência social", "Cultura", "Educação", "Esporte e lazer", "Habitação", "Iluminação pública", "Infraestrutura e obras",
   "Limpeza urbana", "Meio ambiente", "Mobilidade e trânsito", "Saneamento", "Saúde", "Segurança", "Outros",
@@ -80,7 +118,8 @@ async function seedDemandas(usuarios: Map<string, string>) {
   const regionais = await db.regional.findMany();
   for (const r of regionais) {
     for (const nome of BAIRROS[r.codigo] ?? []) {
-      await db.bairro.upsert({ where: { nome_regionalId: { nome, regionalId: r.id } }, update: {}, create: { nome, regionalId: r.id } });
+      const [latitude, longitude] = COORD_BAIRRO[nome] ?? [null, null];
+      await db.bairro.upsert({ where: { nome_regionalId: { nome, regionalId: r.id } }, update: { latitude, longitude }, create: { nome, regionalId: r.id, latitude, longitude } });
     }
   }
   for (const nome of TEMAS) await db.tema.upsert({ where: { nome }, update: {}, create: { nome } });
@@ -113,7 +152,7 @@ async function seedDemandas(usuarios: Map<string, string>) {
     const d = await db.demanda.create({
       data: {
         protocolo: `DEM-${ano}-${String(i).padStart(5, "0")}`,
-        pessoaId, endereco: `Rua Fictícia ${i}, ${i * 10}`, bairroId, temaId: temas.get(tema)!, tipo, descricao, prioridade, status,
+        pessoaId, endereco: `Rua Fictícia ${i}, ${i * 10}`, bairroId, ...pontoFicticio(bairro, i), temaId: temas.get(tema)!, tipo, descricao, prioridade, status,
         prazo: prazo === null ? null : deISO(somarDias(hoje, prazo)),
         responsavelId, orgaoId: orgao ? orgaos.get(orgao)! : null,
         dataEntrada: deISO(entrada), dataConclusao: finalizada ? deISO(somarDias(hoje, -1)) : null, criadoPorId: autor,
