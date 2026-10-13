@@ -75,7 +75,7 @@ export default async function EmendaPage({ params, searchParams }: { params: Pro
             <dl className="grid gap-4 sm:grid-cols-3">
               <Item rotulo="Objeto" largo>{e.objeto}</Item>
               {e.justificativa && <Item rotulo="Justificativa" largo>{e.justificativa}</Item>}
-              <Item rotulo="Beneficiário">{e.beneficiario}</Item>
+              <Item rotulo="Beneficiário">{e.entidade ? <Link href={`/entidades/${e.entidade.id}`} className="text-marca-800 hover:underline">{e.beneficiario ?? e.entidade.nome}</Link> : e.beneficiario}</Item>
               <Item rotulo="CNPJ">{formatarCnpj(e.cnpj)}</Item>
               <Item rotulo="Município">{e.municipio}</Item>
               <Item rotulo="Bairro / regional">{e.bairro ? `${e.bairro.nome} · ${e.bairro.regional.nome}` : null}</Item>

@@ -11,6 +11,7 @@ import {
 import { ROTULO_CARGO, ROTULO_ESFERA, ROTULO_PARTICIPACAO, situacaoMandato } from "@/lib/parlamentares";
 import { documentoSchema, emendaSchema, lancamentoSchema, statusEmendaSchema, vinculoEmendaSchema, type EmendaEntrada } from "@/lib/validacao/emenda";
 import { rotuloMandato } from "@/server/services/parlamentares";
+import { opcoesEntidades } from "@/server/services/entidades";
 
 type Meta = { ip?: string };
 
@@ -22,7 +23,7 @@ const ehUnico = (e: unknown) => typeof e === "object" && e !== null && (e as { c
 
 const ROTULO_CAMPO: Record<string, string> = {
   numero: "número", ano: "ano", esfera: "esfera", tipo: "tipo", objeto: "objeto", justificativa: "justificativa",
-  valorIndicado: "valor indicado", valorAprovado: "valor aprovado", beneficiario: "beneficiário", cnpj: "CNPJ", orgaoId: "órgão",
+  valorIndicado: "valor indicado", valorAprovado: "valor aprovado", beneficiario: "beneficiário", entidadeId: "entidade beneficiária", cnpj: "CNPJ", orgaoId: "órgão",
   secretaria: "secretaria", municipio: "município", bairroId: "bairro", programa: "programa", acaoOrcamentaria: "ação orçamentária",
   prazo: "prazo", responsavelId: "responsável interno", observacoes: "observações",
 };
@@ -111,6 +112,7 @@ export async function obterEmenda(db: Db, ator: Ator, id: string) {
     where: { id },
     include: {
       orgao: true,
+      entidade: { select: { id: true, nome: true } },
       bairro: { include: { regional: true } },
       responsavel: { select: { id: true, nome: true } },
       criadoPor: { select: { nome: true } },
@@ -135,8 +137,8 @@ export async function obterEmenda(db: Db, ator: Ator, id: string) {
 }
 
 /** Opções dos formulários. Mandatos: todos, inclusive o próprio (autoria só por escolha explícita). */
-export async function opcoesEmenda(db: Db) {
-  const [orgaos, regionais, responsaveis, mandatos] = await Promise.all([
+export async function opcoesEmenda(db: Db, entidadeAtual?: string | null) {
+  const [orgaos, regionais, responsaveis, mandatos, entidades] = await Promise.all([
     db.orgao.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true, sigla: true } }),
     db.regional.findMany({ orderBy: { nome: "asc" }, include: { bairros: { orderBy: { nome: "asc" }, select: { id: true, nome: true } } } }),
     db.usuario.findMany({ where: { ativo: true, perfil: { not: "CONSULTA" } }, orderBy: { nome: "asc" }, select: { id: true, nome: true } }),
@@ -145,9 +147,10 @@ export async function opcoesEmenda(db: Db) {
       orderBy: [{ parlamentar: { proprio: "desc" } }, { parlamentar: { nome: "asc" } }, { dataInicio: "desc" }],
       select: { id: true, legislatura: true, cargo: true, esfera: true, dataInicio: true, dataFim: true, partido: true, parlamentar: { select: { nome: true, partido: true, proprio: true } } },
     }),
+    opcoesEntidades(db, entidadeAtual),
   ]);
   return {
-    orgaos, regionais, responsaveis,
+    orgaos, regionais, responsaveis, entidades,
     mandatos: mandatos.map((m) => {
       const partido = m.partido ?? m.parlamentar.partido;
       const sit = situacaoMandato(m.dataInicio, m.dataFim) === "VIGENTE" ? "" : " — encerrado/futuro";
@@ -162,7 +165,17 @@ export type OpcoesEmenda = Awaited<ReturnType<typeof opcoesEmenda>>;
 
 // ---------- cadastro ----------
 
-async function validarReferencias(db: Db | Tx, d: { orgaoId: number | null; bairroId: number | null; responsavelId: string | null }) {
+async function validarReferencias(
+  db: Db | Tx,
+  d: { orgaoId: number | null; bairroId: number | null; responsavelId: string | null; entidadeId: string | null; beneficiario: string | null; cnpj: string | null },
+) {
+  if (d.entidadeId) {
+    const ent = await db.entidade.findUnique({ where: { id: d.entidadeId }, select: { nome: true, cnpj: true } });
+    if (!ent) throw validacao("Entidade beneficiária inválida.");
+    if (d.cnpj && ent.cnpj && d.cnpj !== ent.cnpj) throw validacao("O CNPJ informado é diferente do CNPJ da entidade beneficiária.");
+    d.beneficiario ??= ent.nome;
+    d.cnpj ??= ent.cnpj;
+  }
   if (d.orgaoId && !(await db.orgao.findFirst({ where: { id: d.orgaoId, ativo: true } }))) throw validacao("Órgão inválido.");
   if (d.bairroId && !(await db.bairro.findUnique({ where: { id: d.bairroId } }))) throw validacao("Bairro inválido.");
   if (d.responsavelId) {
@@ -180,7 +193,7 @@ function normalizar(entrada: EmendaEntrada) {
     dados: {
       numero: d.numero, ano: d.ano, esfera: d.esfera as Esfera, tipo: d.tipo as TipoEmenda, objeto: d.objeto, justificativa: d.justificativa,
       valorIndicado: decimalDe(d.valorIndicado!), valorAprovado: d.valorAprovado === null ? null : decimalDe(d.valorAprovado),
-      beneficiario: d.beneficiario, cnpj: d.cnpj, orgaoId: d.orgaoId, secretaria: d.secretaria, municipio: d.municipio, bairroId: d.bairroId,
+      beneficiario: d.beneficiario, entidadeId: d.entidadeId, cnpj: d.cnpj, orgaoId: d.orgaoId, secretaria: d.secretaria, municipio: d.municipio, bairroId: d.bairroId,
       programa: d.programa, acaoOrcamentaria: d.acaoOrcamentaria, prazo: d.prazo, responsavelId: d.responsavelId, observacoes: d.observacoes,
     },
   };

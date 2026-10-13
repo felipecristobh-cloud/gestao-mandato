@@ -4,6 +4,7 @@ import { exigir, pode, podeEditarRegistro, podeVerContato, proibir, type Ator } 
 import { registrarAuditoria, diferenca } from "@/server/audit";
 import { naoEncontrado, validacao } from "@/server/errors";
 import { mascararEmail, mascararTelefone } from "@/lib/mascara";
+import { opcoesEntidades } from "@/server/services/entidades";
 import {
   ROTULO_STATUS, STATUS_ABERTOS, STATUS_FINAIS, deISO, hojeISO, somarDias, type FiltroPrazo,
 } from "@/lib/demandas";
@@ -18,7 +19,7 @@ function primeiroErro(r: { error: { issues: { message: string }[] } }) {
 
 const ROTULO_CAMPO: Record<string, string> = {
   endereco: "endereço", bairroId: "bairro", temaId: "tema", tipo: "tipo", descricao: "descrição", prioridade: "prioridade",
-  prazo: "prazo", responsavelId: "responsável", orgaoId: "órgão", observacoes: "observações",
+  prazo: "prazo", responsavelId: "responsável", orgaoId: "órgão", entidadeId: "entidade", observacoes: "observações",
   solicitanteNome: "nome do solicitante", telefone: "telefone", email: "e-mail",
 };
 
@@ -112,6 +113,7 @@ export async function obterDemanda(db: Db, ator: Ator, id: string) {
       pessoa: { include: { bairro: true } },
       tema: true,
       orgao: true,
+      entidade: { select: { id: true, nome: true } },
       bairro: { include: { regional: true } },
       responsavel: { select: { id: true, nome: true } },
       criadoPor: { select: { id: true, nome: true } },
@@ -132,14 +134,15 @@ export async function obterDemanda(db: Db, ator: Ator, id: string) {
   return { ...d, podeEditar: podeEditarRegistro(ator, d), contatoVisivel: verContato };
 }
 
-export async function opcoesDemanda(db: Db) {
-  const [temas, orgaos, regionais, responsaveis] = await Promise.all([
+export async function opcoesDemanda(db: Db, entidadeAtual?: string | null) {
+  const [temas, orgaos, regionais, responsaveis, entidades] = await Promise.all([
     db.tema.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true } }),
     db.orgao.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true, sigla: true } }),
     db.regional.findMany({ orderBy: { nome: "asc" }, include: { bairros: { orderBy: { nome: "asc" }, select: { id: true, nome: true } } } }),
     db.usuario.findMany({ where: { ativo: true, perfil: { not: "CONSULTA" } }, orderBy: { nome: "asc" }, select: { id: true, nome: true } }),
+    opcoesEntidades(db, entidadeAtual),
   ]);
-  return { temas, orgaos, regionais, responsaveis };
+  return { temas, orgaos, regionais, responsaveis, entidades };
 }
 
 // ---------- duplicidade ----------
@@ -194,11 +197,12 @@ export async function buscarSemelhantes(
 
 async function validarReferencias(
   db: Db | Tx,
-  d: { temaId?: number | null; bairroId?: number | null; orgaoId?: number | null; responsavelId?: string | null },
+  d: { temaId?: number | null; bairroId?: number | null; orgaoId?: number | null; responsavelId?: string | null; entidadeId?: string | null },
 ) {
   if (d.temaId && !(await db.tema.findFirst({ where: { id: d.temaId, ativo: true } }))) throw validacao("Tema inválido.");
   if (d.bairroId && !(await db.bairro.findUnique({ where: { id: d.bairroId } }))) throw validacao("Bairro inválido.");
   if (d.orgaoId && !(await db.orgao.findFirst({ where: { id: d.orgaoId, ativo: true } }))) throw validacao("Órgão inválido.");
+  if (d.entidadeId && !(await db.entidade.findUnique({ where: { id: d.entidadeId } }))) throw validacao("Entidade inválida.");
   if (d.responsavelId) {
     const r = await db.usuario.findUnique({ where: { id: d.responsavelId } });
     if (!r || !r.ativo || r.perfil === "CONSULTA") throw validacao("O responsável precisa ser um usuário ativo que pode editar demandas.");
@@ -278,7 +282,7 @@ export async function atualizarDemanda(db: Db, ator: Ator, id: string, entrada: 
 
   const antes = {
     endereco: atual.endereco, bairroId: atual.bairroId, temaId: atual.temaId, tipo: atual.tipo, descricao: atual.descricao,
-    prioridade: atual.prioridade, prazo: atual.prazo, responsavelId: atual.responsavelId, orgaoId: atual.orgaoId, observacoes: atual.observacoes,
+    prioridade: atual.prioridade, prazo: atual.prazo, responsavelId: atual.responsavelId, orgaoId: atual.orgaoId, entidadeId: atual.entidadeId, observacoes: atual.observacoes,
   };
   const dDemanda = diferenca(antes as Record<string, unknown>, campos);
   const dPessoa = diferenca(

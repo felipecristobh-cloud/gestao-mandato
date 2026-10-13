@@ -13,7 +13,7 @@ import type { EmendaEntrada } from "@/lib/validacao/emenda";
 import type { EstadoForm, Valores } from "./parlamentares-actions";
 
 const CAMPOS_EMENDA = [
-  "numero", "ano", "esfera", "tipo", "objeto", "justificativa", "valorIndicado", "valorAprovado", "beneficiario", "cnpj", "orgaoId",
+  "numero", "ano", "esfera", "tipo", "objeto", "justificativa", "valorIndicado", "valorAprovado", "beneficiario", "entidadeId", "cnpj", "orgaoId",
   "secretaria", "municipio", "bairroId", "programa", "acaoOrcamentaria", "prazo", "responsavelId", "observacoes",
 ];
 const CAMPOS_LANCAMENTO = ["tipo", "valor", "data", "documento", "observacoes"];
