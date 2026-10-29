@@ -17,6 +17,7 @@ import { COR_STATUS_EMENDA, ROTULO_STATUS_EMENDA, centavos, formatarCnpj, format
 import { ROTULO_TIPO_ENTIDADE } from "@/lib/entidades";
 import { ROTULO_CARGO, ROTULO_ESFERA, ROTULO_PARTICIPACAO } from "@/lib/parlamentares";
 import { carregarEntidade } from "../carregar";
+import { CartaoDocumentos } from "@/components/documentos/cartao";
 
 export const metadata: Metadata = { title: "Entidade" };
 
@@ -115,6 +116,7 @@ export default async function EntidadePage({ params, searchParams }: { params: P
           </Cartao>
 
           <CompromissosVinculados itens={compromissos} novoHref={criar ? `/agenda/nova?vinculo=entidade:${e.id}` : undefined} titulo="Reuniões e agenda" />
+          <CartaoDocumentos ator={ator} tipo="entidade" id={e.id} podeAnexar={e.podeEditar} />
         </div>
 
         <div className="space-y-6">

@@ -1,12 +1,19 @@
 import type { AcaoAuditoria, Prisma } from "@prisma/client";
 import type { Db, Tx } from "@/server/db";
+import { mascararEmail, mascararTelefone } from "@/lib/mascara";
 
 const CAMPOS_OCULTOS = new Set(["senhaHash", "senha", "token"]);
 
+/** Minimização (LGPD): a auditoria nunca guarda segredo, e guarda telefone e e-mail mascarados. */
 export function sanitizar(valor: unknown): Prisma.InputJsonValue | undefined {
   if (valor === undefined || valor === null) return undefined;
   return JSON.parse(
-    JSON.stringify(valor, (k, v) => (CAMPOS_OCULTOS.has(k) ? undefined : v)),
+    JSON.stringify(valor, (k, v) => {
+      if (CAMPOS_OCULTOS.has(k)) return undefined;
+      if (k === "telefone" && typeof v === "string") return mascararTelefone(v) || null;
+      if (k === "email" && typeof v === "string") return mascararEmail(v) || null;
+      return v;
+    }),
   ) as Prisma.InputJsonValue;
 }
 

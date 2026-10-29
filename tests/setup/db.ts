@@ -6,7 +6,7 @@ export const db = new PrismaClient({ datasources: { db: { url: process.env.DATAB
 
 export async function limparBanco() {
   await db.$executeRawUnsafe(
-    'TRUNCATE "audit_log", "compromisso_historico", "compromisso_vinculo", "compromisso_participante", "compromisso", "entidade_mandato", "entidade", "emenda_historico", "emenda_documento", "emenda_mandato", "emenda_lancamento", "emenda", "emenda_seq", "demanda_mandato", "mandato", "parlamentar", "sessao", "encaminhamento", "demanda_historico", "demanda", "pessoa", "protocolo_seq", "bairro", "tema", "orgao", "regional", "usuario" RESTART IDENTITY CASCADE',
+    'TRUNCATE "audit_log", "documento", "compromisso_historico", "compromisso_vinculo", "compromisso_participante", "compromisso", "entidade_mandato", "entidade", "emenda_historico", "emenda_documento", "emenda_mandato", "emenda_lancamento", "emenda", "emenda_seq", "demanda_mandato", "mandato", "parlamentar", "sessao", "encaminhamento", "demanda_historico", "demanda", "pessoa", "protocolo_seq", "bairro", "tema", "orgao", "regional", "usuario" RESTART IDENTITY CASCADE',
   );
 }
 
