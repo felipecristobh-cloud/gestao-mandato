@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { Perfil } from "@prisma/client";
-import type { Db } from "@/server/db";
+import type { Db, Tx } from "@/server/db";
 
 export const COOKIE_SESSAO = "gm_sessao";
 export const DURACAO_SESSAO_MS = 8 * 60 * 60 * 1000;
@@ -21,7 +21,7 @@ export function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export async function criarSessao(db: Db, usuarioId: string, meta: { ip?: string; userAgent?: string } = {}) {
+export async function criarSessao(db: Db | Tx, usuarioId: string, meta: { ip?: string; userAgent?: string } = {}) {
   const token = gerarToken();
   const expiraEm = new Date(Date.now() + DURACAO_SESSAO_MS);
   await db.sessao.create({

@@ -18,6 +18,7 @@ import {
 } from "@/lib/emendas";
 import { ROTULO_CARGO, ROTULO_ESFERA, ROTULO_PARTICIPACAO } from "@/lib/parlamentares";
 import { carregarEmenda } from "../carregar";
+import { CartaoDocumentos } from "@/components/documentos/cartao";
 
 export const metadata: Metadata = { title: "Emenda" };
 
@@ -185,8 +186,8 @@ export default async function EmendaPage({ params, searchParams }: { params: Pro
           </Cartao>
 
           <Cartao>
-            <h2 className="mb-1 text-base font-semibold">Documentos</h2>
-            <p className="mb-3 text-xs text-slate-500">Referências (ofício, processo SEI, link). O envio de arquivos chega com o módulo Documentos.</p>
+            <h2 className="mb-1 text-base font-semibold">Referências</h2>
+            <p className="mb-3 text-xs text-slate-500">Número de ofício, processo SEI ou link. Os arquivos ficam no cartão Arquivos.</p>
             {e.documentos.length === 0 && <p className="text-sm text-slate-500">Nenhum documento registrado.</p>}
             <ul className="divide-y divide-slate-100">
               {e.documentos.map((d) => (
@@ -208,6 +209,7 @@ export default async function EmendaPage({ params, searchParams }: { params: Pro
         </div>
 
         <div className="space-y-6">
+          <CartaoDocumentos ator={ator} tipo="emenda" id={e.id} podeAnexar={e.podeEditar} />
           {e.podeEditar && (
             <Cartao>
               <h2 className="mb-3 text-base font-semibold">Status</h2>

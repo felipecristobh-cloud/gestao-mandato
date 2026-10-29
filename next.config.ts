@@ -11,6 +11,8 @@ const seguranca = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["@node-rs/argon2", "exceljs", "pdfkit"],
+  // Upload de documentos (até 10 MB) passa por server action.
+  experimental: { serverActions: { bodySizeLimit: "11mb" } },
   async headers() {
     return [{ source: "/:path*", headers: seguranca }];
   },

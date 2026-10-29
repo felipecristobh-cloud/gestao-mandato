@@ -13,7 +13,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "backup": "bash scripts/backup.sh"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.1",
