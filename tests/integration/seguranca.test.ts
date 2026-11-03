@@ -130,3 +130,11 @@ describe("login — reforços", () => {
     expect(await db.sessao.count({ where: { usuarioId: u.id } })).toBe(0);
   });
 });
+
+describe("RLS nas tabelas (fecha a API REST do Supabase)", () => {
+  it("toda tabela do schema public tem RLS ligado", async () => {
+    const semRls = await db.$queryRaw<{ tablename: string }[]>`
+      SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND NOT rowsecurity`;
+    expect(semRls.map((t) => t.tablename)).toEqual([]);
+  });
+});
