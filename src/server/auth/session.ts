@@ -3,7 +3,9 @@ import type { Perfil } from "@prisma/client";
 import type { Db, Tx } from "@/server/db";
 
 export const COOKIE_SESSAO = "gm_sessao";
-export const DURACAO_SESSAO_MS = 8 * 60 * 60 * 1000;
+export const DURACAO_SESSAO_MS = 7 * 24 * 60 * 60 * 1000;
+/** Sessão deslizante: com uso, o prazo volta a 7 dias (no máximo uma gravação por dia por sessão). */
+const RENOVAR_APOS_MS = 24 * 60 * 60 * 1000;
 
 export type UsuarioSessao = {
   id: string;
@@ -38,6 +40,11 @@ export async function validarSessao(db: Db, token: string): Promise<UsuarioSessa
   if (sessao.expiraEm.getTime() <= Date.now() || !sessao.usuario.ativo) {
     await db.sessao.delete({ where: { id } }).catch(() => undefined);
     return null;
+  }
+  if (sessao.expiraEm.getTime() - Date.now() < DURACAO_SESSAO_MS - RENOVAR_APOS_MS) {
+    await db.sessao
+      .updateMany({ where: { id }, data: { expiraEm: new Date(Date.now() + DURACAO_SESSAO_MS) } })
+      .catch(() => undefined);
   }
   const { usuario } = sessao;
   return { id: usuario.id, nome: usuario.nome, email: usuario.email, perfil: usuario.perfil, trocarSenha: usuario.trocarSenha };

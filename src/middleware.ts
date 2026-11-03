@@ -34,6 +34,17 @@ export function middleware(req: NextRequest) {
   cabecalhos.set("Content-Security-Policy", csp);
   const res = NextResponse.next({ request: { headers: cabecalhos } });
   res.headers.set("Content-Security-Policy", csp);
+  // Renova o prazo do cookie a cada acesso; quem decide se a sessão vale é o banco (validarSessao).
+  const sessao = req.cookies.get("gm_sessao")?.value;
+  if (sessao) {
+    res.cookies.set("gm_sessao", sessao, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60,
+    });
+  }
   return res;
 }
 
