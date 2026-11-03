@@ -7,6 +7,7 @@ import { atualizarMandatoAction, criarMandatoAction, excluirMandatoAction } from
 import { Aviso, CabecalhoPagina, Cartao, Selo, classeBotao } from "@/components/ui";
 import { BotaoConfirmar, FormMandato } from "@/components/forms/parlamentar";
 import { COR_STATUS, ROTULO_STATUS, dataISO } from "@/lib/demandas";
+import { COR_STATUS_EMENDA, ROTULO_STATUS_EMENDA, centavos, formatarMoeda } from "@/lib/emendas";
 import { ROTULO_CARGO, ROTULO_ESFERA, ROTULO_PARTICIPACAO, ROTULO_SITUACAO, situacaoMandato } from "@/lib/parlamentares";
 import { carregarParlamentar } from "../carregar";
 
@@ -72,7 +73,7 @@ export default async function ParlamentarPage({ params, searchParams }: { params
                       <span className="text-slate-600">{rotuloMandato(m)}</span>
                       <Selo cor={sit.cor}>{sit.texto}</Selo>
                       {m.partido && <Selo>{m.partido}</Selo>}
-                      <span className="text-xs text-slate-500">{m._count.demandas} demanda(s) vinculada(s)</span>
+                      <span className="text-xs text-slate-500">{m._count.demandas} demanda(s) · {m._count.emendas} emenda(s)</span>
                     </div>
                     <p className="mt-1 text-slate-600">{[ROTULO_ESFERA[m.esfera], [m.municipio, m.uf].filter(Boolean).join("/"), m.descricao].filter(Boolean).join(" · ")}</p>
                     {m.observacoes && <p className="mt-1 text-slate-600">{m.observacoes}</p>}
@@ -84,7 +85,7 @@ export default async function ParlamentarPage({ params, searchParams }: { params
                             <FormMandato acao={atualizarMandatoAction.bind(null, p.id, m.id)} valores={valores} rotuloBotao="Salvar mandato" prefixo={`m${m.id.slice(0, 8)}-`} />
                           </div>
                         </details>
-                        {m._count.demandas === 0 && (
+                        {m._count.demandas === 0 && m._count.emendas === 0 && (
                           <BotaoConfirmar acao={excluirMandatoAction.bind(null, p.id, m.id)} rotulo="Excluir mandato" pergunta="Excluir este mandato?" />
                         )}
                       </div>
@@ -98,6 +99,29 @@ export default async function ParlamentarPage({ params, searchParams }: { params
                 <summary className="cursor-pointer text-sm font-medium text-marca-800">+ Adicionar mandato</summary>
                 <div className="mt-3"><FormMandato acao={criarMandatoAction.bind(null, p.id)} valores={{ cargo: p.cargo }} rotuloBotao="Cadastrar mandato" /></div>
               </details>
+            )}
+          </Cartao>
+
+          <Cartao>
+            <h2 className="mb-3 text-base font-semibold">Emendas</h2>
+            {p.emendas.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhuma emenda vinculada.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {p.emendas.map((v) => (
+                  <li key={v.id} className="py-2 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link href={`/emendas/${v.emenda.id}`} className="font-medium text-marca-800 hover:underline">{v.emenda.codigo}</Link>
+                      <Selo cor={COR_STATUS_EMENDA[v.emenda.status]}>{ROTULO_STATUS_EMENDA[v.emenda.status]}</Selo>
+                      <Selo cor={v.tipo === "AUTOR" || v.tipo === "COAUTOR" ? "verde" : "azul"}>{ROTULO_PARTICIPACAO[v.tipo]}</Selo>
+                      <span className="text-xs text-slate-500">
+                        {ROTULO_ESFERA[v.emenda.esfera]} · {v.emenda.numero ? `nº ${v.emenda.numero}/${v.emenda.ano}` : v.emenda.ano} · {formatarMoeda(centavos(v.emenda.valorAprovado ?? v.emenda.valorIndicado))}
+                      </span>
+                    </div>
+                    <p className="line-clamp-2 text-slate-600">{v.emenda.objeto}</p>
+                  </li>
+                ))}
+              </ul>
             )}
           </Cartao>
 

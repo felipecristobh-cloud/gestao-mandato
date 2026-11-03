@@ -52,6 +52,12 @@ model Usuario {
   parlamentaresCriados Parlamentar[]
   mandatosCriados      Mandato[]
   vinculosMandato      DemandaMandato[]
+  emendasResponsavel   Emenda[]           @relation("EmendaResponsavel")
+  emendasCriadas       Emenda[]           @relation("EmendaCriadoPor")
+  historicoEmendas     EmendaHistorico[]
+  lancamentosEmenda    EmendaLancamento[]
+  vinculosEmenda       EmendaMandato[]
+  documentosEmenda     EmendaDocumento[]
 
   @@map("usuario")
 }
@@ -132,6 +138,7 @@ model Bairro {
   regional Regional  @relation(fields: [regionalId], references: [id])
   pessoas  Pessoa[]
   demandas Demanda[]
+  emendas  Emenda[]
 
   @@unique([nome, regionalId])
   @@map("bairro")
@@ -157,6 +164,7 @@ model Orgao {
 
   demandas        Demanda[]
   encaminhamentos Encaminhamento[]
+  emendas         Emenda[]
 
   @@map("orgao")
 }
@@ -350,6 +358,7 @@ model Mandato {
   parlamentar Parlamentar      @relation(fields: [parlamentarId], references: [id], onDelete: Restrict)
   criadoPor   Usuario?         @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
   demandas    DemandaMandato[]
+  emendas     EmendaMandato[]
 
   @@index([parlamentarId])
   @@map("mandato")
@@ -371,4 +380,184 @@ model DemandaMandato {
   @@unique([demandaId, mandatoId, tipo])
   @@index([mandatoId])
   @@map("demanda_mandato")
+}
+
+// ---------- Fase 4: Emendas ----------
+
+enum StatusEmenda {
+  EM_NEGOCIACAO
+  EM_ELABORACAO
+  INDICADA
+  PROTOCOLADA
+  APROVADA
+  EM_ANALISE
+  IMPEDIMENTO_TECNICO
+  EMPENHADA
+  EM_EXECUCAO
+  LIQUIDADA
+  PAGA
+  CONCLUIDA
+  CANCELADA
+}
+
+enum TipoEmenda {
+  INDIVIDUAL
+  BANCADA
+  COMISSAO
+  RELATOR
+  OUTRO
+}
+
+enum TipoLancamento {
+  EMPENHO
+  LIQUIDACAO
+  PAGAMENTO
+}
+
+enum TipoDocumentoEmenda {
+  OFICIO
+  PROCESSO
+  PLANO_TRABALHO
+  NOTA_EMPENHO
+  TERMO
+  COMPROVANTE
+  OUTRO
+}
+
+enum TipoHistoricoEmenda {
+  CRIACAO
+  EDICAO
+  STATUS
+  RESPONSAVEL
+  EXECUCAO
+  MANDATO
+  DOCUMENTO
+  COMENTARIO
+}
+
+model EmendaSeq {
+  ano    Int @id
+  ultimo Int
+
+  @@map("emenda_seq")
+}
+
+model Emenda {
+  id               String       @id @default(uuid()) @db.Uuid
+  codigo           String       @unique
+  numero           String?
+  ano              Int
+  esfera           Esfera
+  tipo             TipoEmenda   @default(INDIVIDUAL)
+  objeto           String
+  justificativa    String?
+  valorIndicado    Decimal      @default(0) @map("valor_indicado") @db.Decimal(14, 2)
+  valorAprovado    Decimal?     @map("valor_aprovado") @db.Decimal(14, 2)
+  valorEmpenhado   Decimal      @default(0) @map("valor_empenhado") @db.Decimal(14, 2)
+  valorLiquidado   Decimal      @default(0) @map("valor_liquidado") @db.Decimal(14, 2)
+  valorPago        Decimal      @default(0) @map("valor_pago") @db.Decimal(14, 2)
+  status           StatusEmenda @default(EM_NEGOCIACAO)
+  beneficiario     String?
+  cnpj             String?      @db.Char(14)
+  orgaoId          Int?         @map("orgao_id")
+  secretaria       String?
+  municipio        String?
+  bairroId         Int?         @map("bairro_id")
+  programa         String?
+  acaoOrcamentaria String?      @map("acao_orcamentaria")
+  prazo            DateTime?    @db.Date
+  responsavelId    String?      @map("responsavel_id") @db.Uuid
+  observacoes      String?
+  criadoPorId      String?      @map("criado_por_id") @db.Uuid
+  criadoEm         DateTime     @default(now()) @map("criado_em")
+  atualizadoEm     DateTime     @updatedAt @map("atualizado_em")
+
+  orgao       Orgao?             @relation(fields: [orgaoId], references: [id])
+  bairro      Bairro?            @relation(fields: [bairroId], references: [id])
+  responsavel Usuario?           @relation("EmendaResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  criadoPor   Usuario?           @relation("EmendaCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  historico   EmendaHistorico[]
+  lancamentos EmendaLancamento[]
+  mandatos    EmendaMandato[]
+  documentos  EmendaDocumento[]
+
+  @@unique([esfera, ano, numero])
+  @@index([status])
+  @@index([ano])
+  @@index([responsavelId])
+  @@map("emenda")
+}
+
+model EmendaLancamento {
+  id          String         @id @default(uuid()) @db.Uuid
+  emendaId    String         @map("emenda_id") @db.Uuid
+  tipo        TipoLancamento
+  valor       Decimal        @db.Decimal(14, 2)
+  data        DateTime       @db.Date
+  documento   String?
+  observacoes String?
+  usuarioId   String?        @map("usuario_id") @db.Uuid
+  criadoEm    DateTime       @default(now()) @map("criado_em")
+
+  emenda  Emenda   @relation(fields: [emendaId], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([emendaId, data])
+  @@map("emenda_lancamento")
+}
+
+model EmendaMandato {
+  id               String           @id @default(uuid()) @db.Uuid
+  emendaId         String           @map("emenda_id") @db.Uuid
+  mandatoId        String           @map("mandato_id") @db.Uuid
+  tipo             TipoParticipacao
+  responsabilidade String?
+  dataInicio       DateTime?        @map("data_inicio") @db.Date
+  dataFim          DateTime?        @map("data_fim") @db.Date
+  observacoes      String?
+  usuarioId        String?          @map("usuario_id") @db.Uuid
+  criadoEm         DateTime         @default(now()) @map("criado_em")
+
+  emenda  Emenda   @relation(fields: [emendaId], references: [id], onDelete: Cascade)
+  mandato Mandato  @relation(fields: [mandatoId], references: [id], onDelete: Restrict)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@unique([emendaId, mandatoId, tipo])
+  @@index([mandatoId])
+  @@map("emenda_mandato")
+}
+
+model EmendaDocumento {
+  id        String              @id @default(uuid()) @db.Uuid
+  emendaId  String              @map("emenda_id") @db.Uuid
+  tipo      TipoDocumentoEmenda
+  descricao String
+  numero    String?
+  data      DateTime?           @db.Date
+  url       String?
+  usuarioId String?             @map("usuario_id") @db.Uuid
+  criadoEm  DateTime            @default(now()) @map("criado_em")
+
+  emenda  Emenda   @relation(fields: [emendaId], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([emendaId])
+  @@map("emenda_documento")
+}
+
+model EmendaHistorico {
+  id             String              @id @default(uuid()) @db.Uuid
+  emendaId       String              @map("emenda_id") @db.Uuid
+  usuarioId      String?             @map("usuario_id") @db.Uuid
+  data           DateTime            @default(now())
+  tipo           TipoHistoricoEmenda
+  statusAnterior StatusEmenda?       @map("status_anterior")
+  statusNovo     StatusEmenda?       @map("status_novo")
+  descricao      String
+
+  emenda  Emenda   @relation(fields: [emendaId], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([emendaId, data])
+  @@map("emenda_historico")
 }

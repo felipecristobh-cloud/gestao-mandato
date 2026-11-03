@@ -3,8 +3,8 @@
 Sistema de gestão do mandato do vereador Pedro Patrus (CRM parlamentar):
 **problema → atuação → articulação → recurso → execução → resultado**.
 
-> Estado: **Fase 3 — Parlamentares e Mandatos** (sobre a Fase 1 — Fundação e a Fase 2 — Demandas).
-> Emendas, entidades, agenda, dashboard, relatórios e mapa vêm nas próximas fases.
+> Estado: **Fase 4 — Emendas** (sobre as Fases 1 — Fundação, 2 — Demandas e 3 — Parlamentares e Mandatos).
+> Entidades, agenda, dashboard, relatórios e mapa vêm nas próximas fases.
 
 ## Rodar localmente
 
@@ -71,6 +71,16 @@ docs/adr/             decisões de arquitetura
 - Na demanda, o card **Mandatos parceiros** registra articulação, parceria, acompanhamento, execução ou intermediação. Autoria não existe em demanda e nunca é atribuída automaticamente ao mandato próprio.
 - O seed cria o mandato próprio (Pedro Patrus) e 6 parlamentares parceiros fictícios, com 4 vínculos de exemplo (só se não houver parlamentares).
 - Decisões em [docs/adr/0004-parlamentares-mandatos.md](docs/adr/0004-parlamentares-mandatos.md).
+
+## Emendas (Fase 4)
+
+- `/emendas`: lista com busca (código, número, objeto, beneficiário) e filtros de esfera, status, ano, responsável e parlamentar envolvido; totais de indicado, aprovado, empenhado, liquidado, pago e saldo do conjunto filtrado.
+- `/emendas/nova` e `/emendas/[id]/editar`: emenda municipal, estadual ou federal com número, ano, tipo, objeto, justificativa, valores indicado/aprovado, beneficiário e CNPJ (com dígito verificador), órgão, secretaria, programa, ação, município, bairro/regional, prazo, responsável interno e observações. Código interno `EME-AAAA-NNNNN`.
+- `/emendas/[id]`: valores e execução (lançamentos de empenho, liquidação e pagamento; saldo = empenhado − pago), 13 status com histórico (cancelamento e impedimento técnico exigem motivo), mandatos envolvidos com tipo de participação, responsabilidade e período, referências de documentos e histórico.
+- `/emendas/rede`: Rede de Mandatos — mandato próprio → parlamentar parceiro → emenda → órgão → beneficiário, com valores, esfera, status e tipo de participação.
+- Autoria só existe quando o vínculo **Autor**/**Coautor** é cadastrado; acompanhar, articular ou executar nunca vira autoria.
+- O seed cria 10 emendas fictícias (só se não houver emendas).
+- Decisões em [docs/adr/0005-emendas.md](docs/adr/0005-emendas.md).
 
 ## Segurança
 

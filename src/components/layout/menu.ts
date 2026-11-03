@@ -5,7 +5,7 @@ export type ItemMenu = { href: string; rotulo: string; icone: string; fase?: num
 export const MENU: ItemMenu[] = [
   { href: "/dashboard", rotulo: "Dashboard", icone: "LayoutDashboard" },
   { href: "/demandas", rotulo: "Demandas", icone: "Inbox" },
-  { href: "/emendas", rotulo: "Emendas", icone: "Landmark", fase: 4 },
+  { href: "/emendas", rotulo: "Emendas", icone: "Landmark" },
   { href: "/parlamentares", rotulo: "Parlamentares e Mandatos", icone: "Users" },
   { href: "/entidades", rotulo: "Entidades", icone: "Building2", fase: 5 },
   { href: "/agenda", rotulo: "Agenda", icone: "CalendarDays", fase: 5 },

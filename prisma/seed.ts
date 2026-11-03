@@ -1,6 +1,7 @@
 import { PrismaClient, type Esfera, type Perfil, type Prioridade, type StatusDemanda, type TipoDemanda, type TipoHistorico } from "@prisma/client";
 import { hashSenha } from "../src/server/auth/password";
 import { deISO, hojeISO, somarDias } from "../src/lib/demandas";
+import { completarCnpj, decimalDe } from "../src/lib/emendas";
 
 const db = new PrismaClient();
 
@@ -188,6 +189,90 @@ async function seedParlamentares(usuarios: Map<string, string>) {
   return PARLAMENTARES.length;
 }
 
+
+type LancSeed = readonly [tipo: "EMPENHO" | "LIQUIDACAO" | "PAGAMENTO", reais: number, data: string];
+type VincSeed = readonly [parlamentar: string, tipo: "AUTOR" | "COAUTOR" | "ARTICULADOR" | "PARCEIRO" | "ACOMPANHAMENTO" | "EXECUCAO" | "INTERMEDIARIO", responsabilidade?: string];
+
+// Emendas fictícias: números, beneficiários e CNPJs inventados.
+const EMENDAS: {
+  esfera: Esfera; numero: string | null; ano: number; tipo: "INDIVIDUAL" | "BANCADA" | "COMISSAO"; objeto: string; beneficiario: string; cnpj12: string;
+  indicado: number; aprovado: number | null; status: string; programa?: string; lanc: LancSeed[]; vinc: VincSeed[]; resp: string; bairro?: boolean;
+}[] = [
+  { esfera: "MUNICIPAL", numero: "101", ano: 2025, tipo: "INDIVIDUAL", objeto: "Reforma da quadra poliesportiva do centro comunitário fictício", beneficiario: "Associação Comunitária Exemplo Um",
+    cnpj12: "112223330001", indicado: 150000, aprovado: 150000, status: "PAGA", programa: "Esporte e lazer",
+    lanc: [["EMPENHO", 150000, "2025-04-10"], ["LIQUIDACAO", 150000, "2025-08-20"], ["PAGAMENTO", 150000, "2025-09-05"]],
+    vinc: [["Pedro Patrus", "AUTOR"]], resp: "assessor", bairro: true },
+  { esfera: "MUNICIPAL", numero: "102", ano: 2025, tipo: "INDIVIDUAL", objeto: "Aquisição de equipamentos para centro de saúde fictício", beneficiario: "Fundo Municipal de Saúde (exemplo)",
+    cnpj12: "223334440001", indicado: 200000, aprovado: 180000, status: "EM_EXECUCAO", programa: "Atenção básica",
+    lanc: [["EMPENHO", 180000, "2025-05-12"], ["LIQUIDACAO", 90000, "2025-11-03"], ["PAGAMENTO", 60000, "2025-12-10"]],
+    vinc: [["Pedro Patrus", "AUTOR"], ["Pedro Patrus", "ACOMPANHAMENTO", "Acompanhar entregas na regional"]], resp: "assessor", bairro: true },
+  { esfera: "MUNICIPAL", numero: "205", ano: 2026, tipo: "INDIVIDUAL", objeto: "Iluminação e paisagismo de praça fictícia", beneficiario: "Secretaria de Obras (exemplo)",
+    cnpj12: "334445550001", indicado: 120000, aprovado: null, status: "PROTOCOLADA", lanc: [], vinc: [["Pedro Patrus", "AUTOR"]], resp: "assessor2", bairro: true },
+  { esfera: "MUNICIPAL", numero: "207", ano: 2026, tipo: "INDIVIDUAL", objeto: "Oficinas culturais para juventude em espaço fictício", beneficiario: "Coletivo Cultural Exemplo",
+    cnpj12: "445556660001", indicado: 80000, aprovado: 80000, status: "IMPEDIMENTO_TECNICO", lanc: [],
+    vinc: [["Vereadora Exemplo Épsilon", "AUTOR"], ["Pedro Patrus", "COAUTOR"]], resp: "assessor2", bairro: true },
+  { esfera: "ESTADUAL", numero: "3150", ano: 2025, tipo: "INDIVIDUAL", objeto: "Custeio de entidade fictícia de assistência a idosos", beneficiario: "Lar Exemplo de Idosos",
+    cnpj12: "556667770001", indicado: 300000, aprovado: 300000, status: "LIQUIDADA",
+    lanc: [["EMPENHO", 300000, "2025-06-02"], ["LIQUIDACAO", 300000, "2025-10-15"]],
+    vinc: [["Deputada Estadual Exemplo Alfa", "AUTOR"], ["Pedro Patrus", "ARTICULADOR", "Articulou a indicação com a entidade"]], resp: "coordenacao" },
+  { esfera: "ESTADUAL", numero: "4410", ano: 2026, tipo: "INDIVIDUAL", objeto: "Equipamentos para escola estadual fictícia", beneficiario: "Caixa Escolar Exemplo",
+    cnpj12: "667778880001", indicado: 250000, aprovado: 250000, status: "EMPENHADA", lanc: [["EMPENHO", 250000, "2026-05-20"]],
+    vinc: [["Deputada Estadual Exemplo Alfa", "AUTOR"], ["Pedro Patrus", "ACOMPANHAMENTO", "Acompanhar plano de trabalho"]], resp: "assessor" },
+  { esfera: "ESTADUAL", numero: null, ano: 2026, tipo: "INDIVIDUAL", objeto: "Reforma de unidade de acolhimento fictícia", beneficiario: "Associação Exemplo de Acolhimento",
+    cnpj12: "778889990001", indicado: 400000, aprovado: null, status: "EM_NEGOCIACAO", lanc: [],
+    vinc: [["Deputada Estadual Exemplo Alfa", "PARCEIRO"], ["Pedro Patrus", "ARTICULADOR"]], resp: "coordenacao" },
+  { esfera: "FEDERAL", numero: "2025.0001", ano: 2025, tipo: "INDIVIDUAL", objeto: "Aquisição de ambulância para serviço fictício", beneficiario: "Fundo Municipal de Saúde (exemplo)",
+    cnpj12: "889990010001", indicado: 350000, aprovado: 350000, status: "CONCLUIDA",
+    lanc: [["EMPENHO", 350000, "2025-03-15"], ["LIQUIDACAO", 350000, "2025-07-01"], ["PAGAMENTO", 350000, "2025-07-20"]],
+    vinc: [["Deputado Federal Exemplo Beta", "AUTOR"], ["Pedro Patrus", "INTERMEDIARIO", "Intermediou a demanda da regional"]], resp: "coordenacao" },
+  { esfera: "FEDERAL", numero: "2026.0042", ano: 2026, tipo: "BANCADA", objeto: "Pavimentação de vias em vila fictícia", beneficiario: "Prefeitura (exemplo)",
+    cnpj12: "990001120001", indicado: 1000000, aprovado: 800000, status: "EM_ANALISE", lanc: [],
+    vinc: [["Deputada Federal Exemplo Gama", "AUTOR"], ["Senador Exemplo Delta", "COAUTOR"], ["Pedro Patrus", "ACOMPANHAMENTO"], ["Pedro Patrus", "ARTICULADOR"]], resp: "assessor" },
+  { esfera: "FEDERAL", numero: "2026.0077", ano: 2026, tipo: "INDIVIDUAL", objeto: "Programa fictício de qualificação profissional", beneficiario: "Instituto Exemplo de Formação",
+    cnpj12: "101112130001", indicado: 500000, aprovado: null, status: "CANCELADA", lanc: [],
+    vinc: [["Senador Exemplo Delta", "AUTOR"], ["Pedro Patrus", "PARCEIRO"]], resp: "coordenacao" },
+];
+
+async function seedEmendas(usuarios: Map<string, string>) {
+  if ((await db.emenda.count()) > 0) return 0;
+  const autor = usuarios.get("coordenacao")!;
+  const mandatos = await db.mandato.findMany({ include: { parlamentar: { select: { nome: true } } } });
+  const mandatoDe = (nome: string, ano: number) => {
+    const m = mandatos.find((x) => x.parlamentar.nome === nome && x.dataInicio.getUTCFullYear() <= ano && (x.dataFim?.getUTCFullYear() ?? 9999) >= ano);
+    if (!m) throw new Error(`Seed: mandato de ${nome} em ${ano} não encontrado.`);
+    return m.id;
+  };
+  const orgaos = await db.orgao.findMany({ orderBy: { id: "asc" }, select: { id: true } });
+  const bairros = await db.bairro.findMany({ orderBy: { id: "asc" }, take: 10, select: { id: true } });
+  const anoCodigo = Number(hojeISO().slice(0, 4));
+  for (const [i, e] of EMENDAS.entries()) {
+    const soma = (t: string) => e.lanc.filter((l) => l[0] === t).reduce((s, l) => s + l[1] * 100, 0);
+    const criada = await db.emenda.create({
+      data: {
+        codigo: `EME-${anoCodigo}-${String(i + 1).padStart(5, "0")}`, numero: e.numero, ano: e.ano, esfera: e.esfera, tipo: e.tipo,
+        objeto: e.objeto, justificativa: "Justificativa fictícia para demonstração do sistema.", beneficiario: e.beneficiario, cnpj: completarCnpj(e.cnpj12),
+        valorIndicado: decimalDe(e.indicado * 100), valorAprovado: e.aprovado === null ? null : decimalDe(e.aprovado * 100),
+        valorEmpenhado: decimalDe(soma("EMPENHO")), valorLiquidado: decimalDe(soma("LIQUIDACAO")), valorPago: decimalDe(soma("PAGAMENTO")),
+        status: e.status as never, municipio: "Belo Horizonte", orgaoId: orgaos.length ? orgaos[i % orgaos.length].id : null,
+        bairroId: e.bairro && bairros.length ? bairros[i % bairros.length].id : null, programa: e.programa ?? null,
+        prazo: deISO(somarDias(hojeISO(), 15 + i * 20)), responsavelId: usuarios.get(e.resp) ?? null, criadoPorId: autor,
+      },
+    });
+    await db.emendaHistorico.create({ data: { emendaId: criada.id, usuarioId: autor, tipo: "CRIACAO", statusNovo: criada.status, descricao: "Emenda fictícia cadastrada pelo seed." } });
+    if (e.status === "IMPEDIMENTO_TECNICO" || e.status === "CANCELADA") {
+      await db.emendaHistorico.create({ data: { emendaId: criada.id, usuarioId: autor, tipo: "STATUS", statusNovo: criada.status, descricao: "Motivo fictício: documentação do beneficiário incompleta." } });
+    }
+    for (const [tipo, reais, data] of e.lanc) {
+      await db.emendaLancamento.create({ data: { emendaId: criada.id, tipo, valor: decimalDe(reais * 100), data: deISO(data), documento: `${tipo.slice(0, 2)}-${i + 1}`, usuarioId: autor } });
+    }
+    for (const [nome, tipo, responsabilidade] of e.vinc) {
+      await db.emendaMandato.create({ data: { emendaId: criada.id, mandatoId: mandatoDe(nome, e.ano), tipo, responsabilidade: responsabilidade ?? null, usuarioId: autor } });
+    }
+  }
+  await db.emendaSeq.upsert({ where: { ano: anoCodigo }, update: { ultimo: EMENDAS.length }, create: { ano: anoCodigo, ultimo: EMENDAS.length } });
+  return EMENDAS.length;
+}
+
 async function main() {
   if (process.env.NODE_ENV === "production" && process.env.PERMITIR_SEED !== "1") {
     throw new Error("Seed bloqueado em produção (defina PERMITIR_SEED=1 só em homologação).");
@@ -208,7 +293,8 @@ async function main() {
   const ids = new Map((await db.usuario.findMany({ select: { id: true, email: true } })).map((u) => [u.email.split("@")[0], u.id]));
   const demandas = await seedDemandas(ids);
   const parlamentares = await seedParlamentares(ids);
-  console.log(`Seed: ${REGIONAIS.length} regionais, ${USUARIOS.length} usuários fictícios, ${demandas} demandas fictícias novas, ${parlamentares} parlamentares novos.`);
+  const emendas = await seedEmendas(ids);
+  console.log(`Seed: ${REGIONAIS.length} regionais, ${USUARIOS.length} usuários fictícios, ${demandas} demandas fictícias novas, ${parlamentares} parlamentares novos, ${emendas} emendas novas.`);
 }
 
 main().finally(() => db.$disconnect());
