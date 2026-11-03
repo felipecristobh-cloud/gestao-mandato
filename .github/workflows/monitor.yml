@@ -14,7 +14,7 @@ jobs:
       - name: Sistema e banco respondendo
         run: |
           for i in 1 2 3; do
-            if curl -fsS --max-time 20 "${{ vars.URL_PRODUCAO }}/api/health" | grep -q '"status":"ok"'; then echo "ok"; exit 0; fi
+            if curl -fsSL --max-time 20 "${{ vars.URL_PRODUCAO }}/api/health" | grep -q '"status":"ok"'; then echo "ok"; exit 0; fi
             sleep 30
           done
           echo "::error::${{ vars.URL_PRODUCAO }} fora do ar ou sem banco"
