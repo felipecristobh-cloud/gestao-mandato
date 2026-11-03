@@ -43,7 +43,7 @@ export function Sidebar({ itens, rodape }: { itens: ItemMenu[]; rodape: React.Re
 
   const marca = (
     <div className="border-b border-neutral-800 px-5 py-4">
-      <Image src="/logo-contorno.png" alt="Pedro Patrus" width={693} height={377} className="h-auto w-28" />
+      <Image src="/logo-branca.png" alt="Pedro Patrus" width={297} height={152} className="h-auto w-28" />
       <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Gestão do Mandato</p>
     </div>
   );
@@ -51,7 +51,7 @@ export function Sidebar({ itens, rodape }: { itens: ItemMenu[]; rodape: React.Re
   return (
     <>
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-neutral-800 bg-neutral-950 px-4 py-2 text-white lg:hidden">
-        <Image src="/logo-contorno.png" alt="Pedro Patrus" width={693} height={377} className="h-auto w-20" />
+        <Image src="/logo-branca.png" alt="Pedro Patrus" width={297} height={152} className="h-auto w-20" />
         <button
           type="button"
           onClick={() => setAberto(true)}
