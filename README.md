@@ -3,8 +3,8 @@
 Sistema de gestão do mandato do vereador Pedro Patrus (CRM parlamentar):
 **problema → atuação → articulação → recurso → execução → resultado**.
 
-> Estado: **Fase 6 — Dashboard** (sobre as Fases 1 a 5: Fundação, Demandas, Parlamentares e Mandatos, Emendas, Entidades e Agenda).
-> Relatórios, mapa e upload de documentos vêm nas próximas fases.
+> Estado: **Fase 7 — Relatórios** (sobre as Fases 1 a 6: Fundação, Demandas, Parlamentares e Mandatos, Emendas, Entidades e Agenda, Dashboard).
+> Mapa e upload de documentos vêm nas próximas fases.
 
 ## Rodar localmente
 
@@ -100,6 +100,15 @@ docs/adr/             decisões de arquitetura
   - Clicar num gráfico abre a lista já filtrada.
 - Tudo é calculado no servidor a cada acesso, então qualquer alteração aparece na hora.
 - Definições e decisões em [docs/adr/0007-dashboard.md](docs/adr/0007-dashboard.md).
+
+## Relatórios (Fase 7)
+
+- `/relatorios`: 17 relatórios de demandas e emendas.
+  - Mostra os filtros e uma prévia na tela.
+  - Baixa em CSV, Excel (com fórmulas) ou PDF, pela rota `/relatorios/exportar`.
+- Nome e telefone do solicitante só saem para Admin/Coordenação, quando marcados.
+- Toda exportação fica na auditoria.
+- Decisões em [docs/adr/0008-relatorios.md](docs/adr/0008-relatorios.md).
 
 ## Segurança
 

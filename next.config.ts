@@ -10,7 +10,7 @@ const seguranca = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ["@node-rs/argon2"],
+  serverExternalPackages: ["@node-rs/argon2", "exceljs", "pdfkit"],
   async headers() {
     return [{ source: "/:path*", headers: seguranca }];
   },
