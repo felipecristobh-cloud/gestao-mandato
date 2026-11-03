@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Perfil {
+  ADMIN
+  COORDENACAO
+  ASSESSOR
+  CONSULTA
+}
+
+enum AcaoAuditoria {
+  CRIAR
+  EDITAR
+  EXCLUIR
+  VISUALIZAR_SENSIVEL
+  EXPORTAR
+  LOGIN
+  LOGIN_FALHA
+  LOGOUT
+}
+
+model Usuario {
+  id               String    @id @default(uuid()) @db.Uuid
+  nome             String
+  email            String    @unique
+  telefone         String?
+  cargo            String?
+  perfil           Perfil    @default(CONSULTA)
+  ativo            Boolean   @default(true)
+  senhaHash        String    @map("senha_hash")
+  trocarSenha      Boolean   @default(true) @map("trocar_senha")
+  tentativasFalhas Int       @default(0) @map("tentativas_falhas")
+  bloqueadoAte     DateTime? @map("bloqueado_ate")
+  ultimoLogin      DateTime? @map("ultimo_login")
+  criadoEm         DateTime  @default(now()) @map("criado_em")
+  atualizadoEm     DateTime  @updatedAt @map("atualizado_em")
+
+  sessoes   Sessao[]
+  auditoria AuditLog[]
+
+  @@map("usuario")
+}
+
+model Sessao {
+  id        String   @id
+  usuarioId String   @map("usuario_id") @db.Uuid
+  expiraEm  DateTime @map("expira_em")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+  ip        String?
+  userAgent String?  @map("user_agent")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("sessao")
+}
+
+model Regional {
+  id     Int    @id @default(autoincrement())
+  nome   String @unique
+  codigo String @unique
+
+  @@map("regional")
+}
+
+model AuditLog {
+  id            String        @id @default(uuid()) @db.Uuid
+  usuarioId     String?       @map("usuario_id") @db.Uuid
+  data          DateTime      @default(now())
+  entidade      String
+  registroId    String?       @map("registro_id")
+  acao          AcaoAuditoria
+  valorAnterior Json?         @map("valor_anterior")
+  valorNovo     Json?         @map("valor_novo")
+  descricao     String?
+  ip            String?
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([entidade, registroId])
+  @@index([data])
+  @@map("audit_log")
+}
