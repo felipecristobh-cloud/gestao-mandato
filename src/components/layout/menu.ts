@@ -11,7 +11,7 @@ export const MENU: ItemMenu[] = [
   { href: "/agenda", rotulo: "Agenda", icone: "CalendarDays" },
   { href: "/mapa", rotulo: "Mapa", icone: "Map" },
   { href: "/relatorios", rotulo: "Relatórios", icone: "FileBarChart" },
-  { href: "/documentos", rotulo: "Documentos", icone: "FileText", fase: 9 },
+  { href: "/documentos", rotulo: "Documentos", icone: "FileText" },
   { href: "/usuarios", rotulo: "Usuários", icone: "UserCog", permissao: "usuarios:gerenciar" },
   { href: "/configuracoes", rotulo: "Configurações", icone: "Settings" },
 ];

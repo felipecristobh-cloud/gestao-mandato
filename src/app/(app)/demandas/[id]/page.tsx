@@ -15,6 +15,10 @@ import {
   COR_STATUS, ROTULO_HISTORICO, ROTULO_PRIORIDADE, ROTULO_STATUS, ROTULO_TIPO, formatarData, rotuloPrazo, situacaoPrazo, hojeISO, deISO,
 } from "@/lib/demandas";
 import { carregarDemanda } from "./carregar";
+import { CartaoDocumentos } from "@/components/documentos/cartao";
+import { FormAnonimizar } from "@/components/forms/lgpd";
+import { anonimizarPessoaAction } from "@/server/services/lgpd-actions";
+import { pode } from "@/server/authz";
 
 export const metadata: Metadata = { title: "Demanda" };
 
@@ -158,7 +162,12 @@ export default async function DemandaPage({ params, searchParams }: { params: Pr
             {!d.contatoVisivel && (d.pessoa.telefone || d.pessoa.email) && (
               <p className="mt-3 text-xs text-slate-500">Contato parcialmente oculto (LGPD): só o responsável, quem cadastrou e a coordenação veem completo.</p>
             )}
+            {d.pessoa.anonimizadoEm && <p className="mt-3 text-xs text-slate-500">Dados pessoais anonimizados a pedido do titular (LGPD).</p>}
+            {!d.pessoa.anonimizadoEm && pode(ator, "lgpd:anonimizar") && (
+              <div className="mt-4 border-t border-slate-100 pt-3"><FormAnonimizar acao={anonimizarPessoaAction.bind(null, d.pessoaId, d.id)} /></div>
+            )}
           </Cartao>
+          <CartaoDocumentos ator={ator} tipo="demanda" id={d.id} podeAnexar={d.podeEditar} />
           {d.podeEditar && (
             <Cartao>
               <h2 className="mb-3 text-base font-semibold">Status</h2>

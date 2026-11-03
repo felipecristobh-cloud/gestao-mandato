@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Auditoria" };
 const fmt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium", timeZone: "America/Sao_Paulo" });
 const ROTULO_ACAO: Record<string, string> = {
   CRIAR: "Criou", EDITAR: "Editou", EXCLUIR: "Excluiu", VISUALIZAR_SENSIVEL: "Visualizou dado sensível",
-  EXPORTAR: "Exportou", LOGIN: "Entrou", LOGIN_FALHA: "Falha de login", LOGOUT: "Saiu",
+  EXPORTAR: "Exportou", LOGIN: "Entrou", LOGIN_FALHA: "Falha de login", LOGOUT: "Saiu", DOWNLOAD: "Baixou", ANONIMIZAR: "Anonimizou (LGPD)",
 };
 
 const CAMPOS_OCULTOS = new Set(["id", "criadoEm", "atualizadoEm", "ultimoLogin", "tentativasFalhas", "bloqueadoAte"]);

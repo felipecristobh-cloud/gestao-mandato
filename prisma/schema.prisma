@@ -23,6 +23,8 @@ enum AcaoAuditoria {
   LOGIN
   LOGIN_FALHA
   LOGOUT
+  DOWNLOAD
+  ANONIMIZAR
 }
 
 model Usuario {
@@ -58,6 +60,7 @@ model Usuario {
   lancamentosEmenda    EmendaLancamento[]
   vinculosEmenda       EmendaMandato[]
   documentosEmenda     EmendaDocumento[]
+  documentos           Documento[]
 
   entidadesCriadas         Entidade[]
   vinculosEntidade         EntidadeMandato[]
@@ -196,6 +199,8 @@ model Pessoa {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
+  anonimizadoEm DateTime? @map("anonimizado_em")
+
   bairro    Bairro?   @relation(fields: [bairroId], references: [id])
   criadoPor Usuario?  @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
   demandas  Demanda[]
@@ -248,6 +253,7 @@ model Demanda {
 
   entidade     Entidade?            @relation(fields: [entidadeId], references: [id], onDelete: SetNull)
   compromissos CompromissoVinculo[]
+  arquivos     Documento[]
 
   @@index([status])
   @@index([prazo])
@@ -312,6 +318,7 @@ model AuditLog {
 
   @@index([entidade, registroId])
   @@index([data])
+  @@index([acao, ip, data])
   @@map("audit_log")
 }
 
@@ -511,6 +518,7 @@ model Emenda {
 
   entidade     Entidade?            @relation(fields: [entidadeId], references: [id], onDelete: SetNull)
   compromissos CompromissoVinculo[]
+  arquivos     Documento[]
 
   @@unique([esfera, ano, numero])
   @@index([status])
@@ -634,6 +642,7 @@ model Entidade {
   emendas      Emenda[]
   mandatos     EntidadeMandato[]
   compromissos CompromissoVinculo[]
+  arquivos     Documento[]
 
   @@index([nome])
   @@index([bairroId])
@@ -779,4 +788,44 @@ model CompromissoHistorico {
 
   @@index([compromissoId, data])
   @@map("compromisso_historico")
+}
+
+enum CategoriaDocumento {
+  OFICIO
+  PROTOCOLO
+  NOTA
+  COMPROVANTE
+  FOTO
+  PLANO_TRABALHO
+  TERMO
+  OUTRO
+}
+
+/// Arquivo enviado (criptografado no storage). `caminho` é a chave no storage, nunca um caminho público.
+model Documento {
+  id         String             @id @default(uuid()) @db.Uuid
+  nome       String
+  categoria  CategoriaDocumento @default(OUTRO)
+  tipo       String
+  tamanho    Int
+  caminho    String             @unique
+  hash       String
+  descricao  String?
+  restrito   Boolean            @default(false)
+  demandaId  String?            @map("demanda_id") @db.Uuid
+  emendaId   String?            @map("emenda_id") @db.Uuid
+  entidadeId String?            @map("entidade_id") @db.Uuid
+  usuarioId  String?            @map("usuario_id") @db.Uuid
+  criadoEm   DateTime           @default(now()) @map("criado_em")
+
+  demanda  Demanda?  @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  emenda   Emenda?   @relation(fields: [emendaId], references: [id], onDelete: Cascade)
+  entidade Entidade? @relation(fields: [entidadeId], references: [id], onDelete: Cascade)
+  usuario  Usuario?  @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([demandaId])
+  @@index([emendaId])
+  @@index([entidadeId])
+  @@index([criadoEm])
+  @@map("documento")
 }

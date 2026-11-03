@@ -21,7 +21,9 @@ export async function entrarAction(_: EstadoForm, form: FormData): Promise<Estad
     return {
       erro: r.motivo === "BLOQUEADO"
         ? "Muitas tentativas. Acesso bloqueado por 15 minutos."
-        : "E-mail ou senha incorretos.",
+        : r.motivo === "BLOQUEADO_IP"
+          ? "Muitas tentativas a partir desta rede. Aguarde 15 minutos."
+          : "E-mail ou senha incorretos.",
       email,
     };
   }

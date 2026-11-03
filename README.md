@@ -129,6 +129,17 @@ docs/adr/             decisões de arquitetura
 - Permissões checadas no servidor em toda página e ação (`exigir`, `exigirPermissaoPagina`).
 - Auditoria na mesma transação da alteração, sem hashes ou tokens.
 - Headers: `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS. Site marcado `noindex`.
+- Bloqueio por IP: 20 falhas em 15 min. Conta desativada durante o login não ganha sessão.
+- CSP com nonce por requisição (`src/middleware.ts`), sem script externo, sem iframe.
+- Auditoria guarda telefone e e-mail mascarados. Admin anonimiza solicitante (LGPD) pela página da demanda.
+
+## Documentos (Fase 9)
+
+- Anexos em demandas, emendas e entidades (ou avulsos em `/documentos`): PDF, imagens, Word, Excel, ODT/ODS, até 10 MB, tipo real conferido.
+- Ficam cifrados (AES-256-GCM) em `DOCUMENTOS_DIR` (padrão `.dados/documentos`, fora de `public/`). Em produção defina `DOCUMENTOS_CHAVE` (32 bytes: `openssl rand -base64 32`) e guarde-a fora do backup.
+- Restritos só para Admin/Coordenação; anexo de demanda segue a regra do contato do solicitante.
+- Backup: `DATABASE_URL=... npm run backup [pasta]` (banco + documentos, 30 dias de retenção).
+- Detalhes em `docs/adr/0010-seguranca-lgpd-documentos.md`.
 
 ## Deploy (homologação, custo zero)
 

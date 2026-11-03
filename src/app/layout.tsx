@@ -8,6 +8,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
+// A CSP usa nonce por requisição (src/middleware.ts), então nenhuma página pode sair pré-renderizada.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
