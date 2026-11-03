@@ -8,8 +8,8 @@ import { formatarMoeda } from "@/lib/emendas";
 
 export type ItemGrafico = { rotulo: string; valor: number; href?: string; cor?: string };
 
-export const CORES = ["#a51d1d", "#e0782f", "#d4a017", "#0f766e", "#2563eb", "#7c3aed", "#db2777", "#65a30d", "#0891b2", "#64748b"];
-const MARCA = "#a51d1d";
+export const CORES = ["#e10600", "#171717", "#9e0000", "#525252", "#ff5c52", "#a3a3a3", "#6e0000", "#404040", "#ffa19b", "#d4d4d4"];
+const MARCA = "#e10600";
 const compacto = new Intl.NumberFormat("pt-BR", { notation: "compact", style: "currency", currency: "BRL", maximumFractionDigits: 1 });
 const moedaCompacta = (c: number) => compacto.format(c / 100);
 const curto = (s: string) => (s.length > 22 ? `${s.slice(0, 21)}…` : s);
@@ -77,7 +77,7 @@ export function LinhaMeses({ dados }: { dados: { mes: string; novas: number; con
           <Tooltip />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Line type="monotone" dataKey="novas" name="Entradas" stroke={MARCA} strokeWidth={2} dot={{ r: 3 }} />
-          <Line type="monotone" dataKey="concluidas" name="Concluídas" stroke="#0f766e" strokeWidth={2} dot={{ r: 3 }} />
+          <Line type="monotone" dataKey="concluidas" name="Concluídas" stroke="#171717" strokeWidth={2} dot={{ r: 3 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -90,7 +90,7 @@ export function Execucao({ dados }: { dados: LinhaExecucao[] }) {
   const ir = useIr();
   if (!dados.some((d) => d.aprovado || d.empenhado)) return <Vazio />;
   const series: [keyof LinhaExecucao, string, string][] = [
-    ["aprovado", "Aprovado/indicado", "#cbd5e1"], ["empenhado", "Empenhado", "#d4a017"], ["liquidado", "Liquidado", "#e0782f"], ["pago", "Pago", "#0f766e"],
+    ["aprovado", "Aprovado/indicado", "#d4d4d4"], ["empenhado", "Empenhado", "#525252"], ["liquidado", "Liquidado", "#171717"], ["pago", "Pago", "#e10600"],
   ];
   return (
     <div role="img" aria-label={`Execução financeira: ${dados.map((d) => `${d.rotulo} aprovado ${formatarMoeda(d.aprovado)}, pago ${formatarMoeda(d.pago)}`).join("; ")}`}>

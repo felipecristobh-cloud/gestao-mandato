@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 type Busca = { senha?: string; periodo?: string; ano?: string; minhas?: string };
 
-const COR_HEX = { cinza: "#94a3b8", verde: "#15803d", vermelho: "#a51d1d", azul: "#2563eb", amarelo: "#d4a017" } as const;
+const COR_HEX = { cinza: "#94a3b8", verde: "#15803d", vermelho: "#e10600", azul: "#2563eb", amarelo: "#d4a017" } as const;
 const PLURAL_ESFERA = { MUNICIPAL: "municipais", ESTADUAL: "estaduais", FEDERAL: "federais" } as const;
 const fmtHora = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 

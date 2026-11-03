@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Gestão do Mandato — Pedro Patrus", template: "%s · Gestão do Mandato" },
+  title: { default: "Mandato Pedro Patrus", template: "%s · Mandato Pedro Patrus" },
   robots: { index: false, follow: false },
 };
 
