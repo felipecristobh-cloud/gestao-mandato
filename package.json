@@ -14,7 +14,10 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset",
-    "backup": "bash scripts/backup.sh"
+    "backup": "bash scripts/backup.sh",
+    "backup:nuvem": "bash scripts/backup-nuvem.sh",
+    "criar-admin": "tsx scripts/criar-admin.ts",
+    "vercel-build": "bash scripts/vercel-build.sh"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.1",

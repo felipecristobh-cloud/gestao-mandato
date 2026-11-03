@@ -141,11 +141,11 @@ docs/adr/             decisões de arquitetura
 - Backup: `DATABASE_URL=... npm run backup [pasta]` (banco + documentos, 30 dias de retenção).
 - Detalhes em `docs/adr/0010-seguranca-lgpd-documentos.md`.
 
-## Deploy (homologação, custo zero)
+## Produção (Fase 10, custo zero)
 
-1. Criar projeto no **Supabase** (Free) e copiar a connection string *pooled* para `DATABASE_URL` (com `?pgbouncer=true`) e a *direct* para `DIRECT_URL` se necessário.
-2. Importar o repositório na **Vercel** (Hobby). Variáveis: `DATABASE_URL`.
-3. Build command: `npx prisma migrate deploy && npm run build`.
-4. Criar o primeiro Admin com `PERMITIR_SEED=1 SEED_SENHA=... npm run db:seed` apontando para o banco de homologação, e trocar a senha no 1º acesso.
-
-Detalhes e alternativas na entrega da Fase 0 e em `docs/adr/`.
+- **App:** Vercel Hobby (`npm run vercel-build` gera o Prisma Client, aplica migrations e compila).
+- **Banco e documentos:** Supabase Free (Postgres + bucket privado `documentos`). Com `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` definidos, os anexos vão pro bucket, sempre cifrados antes de sair do servidor.
+- **Primeiro Admin:** `npm run criar-admin` (sem dados fictícios).
+- **Backup:** workflow diário no GitHub Actions (`.github/workflows/backup.yml`), cifrado, 30 dias.
+- **Monitoramento:** `.github/workflows/monitor.yml` checa `/api/health` a cada 15 min; falha gera e-mail do GitHub.
+- Passo a passo, variáveis e restauração: `docs/producao.md`. Manual da equipe: `docs/manual-usuario.md`.
