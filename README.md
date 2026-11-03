@@ -3,8 +3,8 @@
 Sistema de gestão do mandato do vereador Pedro Patrus (CRM parlamentar):
 **problema → atuação → articulação → recurso → execução → resultado**.
 
-> Estado: **Fase 7 — Relatórios** (sobre as Fases 1 a 6: Fundação, Demandas, Parlamentares e Mandatos, Emendas, Entidades e Agenda, Dashboard).
-> Mapa e upload de documentos vêm nas próximas fases.
+> Estado: **Fase 8 — Mapa** (sobre as Fases 1 a 7: Fundação, Demandas, Parlamentares e Mandatos, Emendas, Entidades e Agenda, Dashboard, Relatórios).
+> Upload de documentos e revisão de segurança vêm nas próximas fases.
 
 ## Rodar localmente
 
@@ -109,6 +109,16 @@ docs/adr/             decisões de arquitetura
 - Nome e telefone do solicitante só saem para Admin/Coordenação, quando marcados.
 - Toda exportação fica na auditoria.
 - Decisões em [docs/adr/0008-relatorios.md](docs/adr/0008-relatorios.md).
+
+## Mapa (Fase 8)
+
+- `/mapa`: demandas no mapa (Leaflet + OpenStreetMap, sem custo e sem chave).
+  - Filtros por regional, bairro, tema, status e período.
+  - Clicando no ponto, aparece o resumo da demanda.
+- No cadastro da demanda, dá pra marcar o ponto clicando no mapa ou com "Localizar endereço" (Nominatim/OSM).
+- Demanda sem ponto aparece no centro do bairro.
+- O ponto exato segue a regra do telefone: o Consulta vê só o centro do bairro.
+- Decisões em [docs/adr/0009-mapa.md](docs/adr/0009-mapa.md).
 
 ## Segurança
 

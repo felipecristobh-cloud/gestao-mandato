@@ -9,7 +9,7 @@ export const MENU: ItemMenu[] = [
   { href: "/parlamentares", rotulo: "Parlamentares e Mandatos", icone: "Users" },
   { href: "/entidades", rotulo: "Entidades", icone: "Building2" },
   { href: "/agenda", rotulo: "Agenda", icone: "CalendarDays" },
-  { href: "/mapa", rotulo: "Mapa", icone: "Map", fase: 8 },
+  { href: "/mapa", rotulo: "Mapa", icone: "Map" },
   { href: "/relatorios", rotulo: "Relatórios", icone: "FileBarChart" },
   { href: "/documentos", rotulo: "Documentos", icone: "FileText", fase: 9 },
   { href: "/usuarios", rotulo: "Usuários", icone: "UserCog", permissao: "usuarios:gerenciar" },

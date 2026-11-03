@@ -15,7 +15,7 @@ export type Valores = Record<string, string>;
 export type EstadoDemanda = { erro?: string; ok?: string; valores?: Valores; semelhantes?: Semelhantes; n?: number } | undefined;
 
 const CAMPOS = [
-  "pessoaId", "solicitanteNome", "telefone", "email", "endereco", "bairroId", "temaId", "tipo", "descricao",
+  "pessoaId", "solicitanteNome", "telefone", "email", "endereco", "bairroId", "latitude", "longitude", "temaId", "tipo", "descricao",
   "prioridade", "status", "prazo", "responsavelId", "orgaoId", "entidadeId", "observacoes",
 ];
 

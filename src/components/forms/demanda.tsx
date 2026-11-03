@@ -3,6 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 import { Aviso, Botao, Campo, Rotulo, Selecao } from "@/components/ui";
 import { PRIORIDADES, ROTULO_PRIORIDADE, ROTULO_STATUS, ROTULO_TIPO, STATUS, TIPOS } from "@/lib/demandas";
+import { SeletorLocal } from "@/components/mapa/seletor-local";
 import type { EstadoDemanda, Valores } from "@/server/services/demandas-actions";
 
 type Acao = (e: EstadoDemanda, f: FormData) => Promise<EstadoDemanda>;
@@ -108,6 +109,10 @@ export function FormDemanda({ acao, opcoes, valores: iniciais, edicao }: { acao:
           <div>
             <Rotulo htmlFor="bairroId">Bairro (define a regional)</Rotulo>
             <SelecaoBairro id="bairroId" name="bairroId" regionais={opcoes.regionais} defaultValue={v.bairroId ?? ""} />
+          </div>
+          <div className="sm:col-span-2">
+            <Rotulo>Localização no mapa (opcional)</Rotulo>
+            <SeletorLocal latitude={v.latitude} longitude={v.longitude} />
           </div>
         </Grupo>
 
