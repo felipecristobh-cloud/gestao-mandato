@@ -3,8 +3,8 @@
 Sistema de gestão do mandato do vereador Pedro Patrus (CRM parlamentar):
 **problema → atuação → articulação → recurso → execução → resultado**.
 
-> Estado: **Fase 1 — Fundação** (login, usuários, perfis, permissões, auditoria, navegação).
-> Demandas, emendas, mandatos, entidades, agenda, dashboard, relatórios e mapa vêm nas próximas fases.
+> Estado: **Fase 3 — Parlamentares e Mandatos** (sobre a Fase 1 — Fundação e a Fase 2 — Demandas).
+> Emendas, entidades, agenda, dashboard, relatórios e mapa vêm nas próximas fases.
 
 ## Rodar localmente
 
@@ -63,6 +63,14 @@ docs/adr/             decisões de arquitetura
 - `/demandas/[id]`: detalhe, mudança de status, encaminhamento a órgão, retorno, comentários e histórico.
 - O seed cria temas, órgãos, 27 bairros (3 por regional) e 20 demandas fictícias (só se o banco não tiver nenhuma).
 - Decisões em [docs/adr/0003-demandas.md](docs/adr/0003-demandas.md).
+
+## Parlamentares e Mandatos (Fase 3)
+
+- `/parlamentares`: lista com busca (nome, partido, município) e filtros de cargo, esfera e situação; mostra o mandato vigente e quantas demandas estão vinculadas.
+- `/parlamentares/[id]`: dados, mandatos (vários por pessoa, sem períodos sobrepostos), demandas articuladas e histórico.
+- Na demanda, o card **Mandatos parceiros** registra articulação, parceria, acompanhamento, execução ou intermediação. Autoria não existe em demanda e nunca é atribuída automaticamente ao mandato próprio.
+- O seed cria o mandato próprio (Pedro Patrus) e 6 parlamentares parceiros fictícios, com 4 vínculos de exemplo (só se não houver parlamentares).
+- Decisões em [docs/adr/0004-parlamentares-mandatos.md](docs/adr/0004-parlamentares-mandatos.md).
 
 ## Segurança
 

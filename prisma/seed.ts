@@ -143,6 +143,51 @@ async function seedDemandas(usuarios: Map<string, string>) {
   return DEMANDAS.length;
 }
 
+const PARLAMENTARES = [
+  // Titular do gabinete (agente político público). Confirme partido e datas no sistema.
+  { nome: "Pedro Patrus", cargo: "VEREADOR", partido: "PT", municipio: "Belo Horizonte", uf: "MG", proprio: true,
+    mandatos: [["2025–2028", "2025-01-01", "2028-12-31"]] },
+  // Parceiros fictícios.
+  { nome: "Deputada Estadual Exemplo Alfa", cargo: "DEPUTADO_ESTADUAL", partido: "PFA", municipio: "Belo Horizonte", uf: "MG", proprio: false,
+    mandatos: [["19ª legislatura", "2019-02-01", "2023-01-31"], ["20ª legislatura", "2023-02-01", "2027-01-31"]] },
+  { nome: "Deputado Federal Exemplo Beta", cargo: "DEPUTADO_FEDERAL", partido: "PFB", municipio: null, uf: "MG", proprio: false,
+    mandatos: [["57ª legislatura", "2023-02-01", "2027-01-31"]] },
+  { nome: "Deputada Federal Exemplo Gama", cargo: "DEPUTADO_FEDERAL", partido: "PFA", municipio: null, uf: "MG", proprio: false,
+    mandatos: [["57ª legislatura", "2023-02-01", "2027-01-31"]] },
+  { nome: "Senador Exemplo Delta", cargo: "SENADOR", partido: "PFC", municipio: null, uf: "MG", proprio: false,
+    mandatos: [["2019–2027", "2019-02-01", "2027-01-31"]] },
+  { nome: "Vereadora Exemplo Épsilon", cargo: "VEREADOR", partido: "PFB", municipio: "Belo Horizonte", uf: "MG", proprio: false,
+    mandatos: [["2021–2024", "2021-01-01", "2024-12-31"], ["2025–2028", "2025-01-01", "2028-12-31"]] },
+  { nome: "Ex-Vereador Exemplo Zeta", cargo: "VEREADOR", partido: "PFC", municipio: "Belo Horizonte", uf: "MG", proprio: false, ativo: false,
+    mandatos: [["2017–2020", "2017-01-01", "2020-12-31"]] },
+] as const;
+
+async function seedParlamentares(usuarios: Map<string, string>) {
+  if ((await db.parlamentar.count()) > 0) return 0;
+  const autor = usuarios.get("coordenacao")!;
+  const vigentes: string[] = [];
+  for (const { mandatos, ...p } of PARLAMENTARES) {
+    const esfera = p.cargo === "VEREADOR" ? "MUNICIPAL" : p.cargo === "DEPUTADO_ESTADUAL" ? "ESTADUAL" : "FEDERAL";
+    const criado = await db.parlamentar.create({ data: { ...p, esfera, criadoPorId: autor } });
+    for (const [legislatura, inicio, fim] of mandatos) {
+      const m = await db.mandato.create({
+        data: { parlamentarId: criado.id, cargo: p.cargo, esfera, legislatura, partido: p.partido, municipio: p.municipio, uf: p.uf,
+          dataInicio: deISO(inicio), dataFim: deISO(fim), criadoPorId: autor },
+      });
+      if (!p.proprio && fim >= hojeISO() && inicio <= hojeISO()) vigentes.push(m.id);
+    }
+  }
+  const demandas = await db.demanda.findMany({ orderBy: { protocolo: "asc" }, take: 4, select: { id: true } });
+  const tipos = ["ARTICULADOR", "PARCEIRO", "ACOMPANHAMENTO", "INTERMEDIARIO"] as const;
+  for (const [i, d] of demandas.entries()) {
+    const mandatoId = vigentes[i % vigentes.length];
+    const m = await db.mandato.findUniqueOrThrow({ where: { id: mandatoId }, include: { parlamentar: true } });
+    await db.demandaMandato.create({ data: { demandaId: d.id, mandatoId, tipo: tipos[i], usuarioId: autor } });
+    await db.demandaHistorico.create({ data: { demandaId: d.id, usuarioId: autor, tipo: "ARTICULACAO", descricao: `Vínculo com ${m.parlamentar.nome} (${tipos[i].toLowerCase()}).` } });
+  }
+  return PARLAMENTARES.length;
+}
+
 async function main() {
   if (process.env.NODE_ENV === "production" && process.env.PERMITIR_SEED !== "1") {
     throw new Error("Seed bloqueado em produção (defina PERMITIR_SEED=1 só em homologação).");
@@ -162,7 +207,8 @@ async function main() {
   }
   const ids = new Map((await db.usuario.findMany({ select: { id: true, email: true } })).map((u) => [u.email.split("@")[0], u.id]));
   const demandas = await seedDemandas(ids);
-  console.log(`Seed: ${REGIONAIS.length} regionais, ${USUARIOS.length} usuários fictícios, ${demandas} demandas fictícias novas.`);
+  const parlamentares = await seedParlamentares(ids);
+  console.log(`Seed: ${REGIONAIS.length} regionais, ${USUARIOS.length} usuários fictícios, ${demandas} demandas fictícias novas, ${parlamentares} parlamentares novos.`);
 }
 
 main().finally(() => db.$disconnect());

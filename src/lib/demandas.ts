@@ -49,6 +49,7 @@ export const ROTULO_HISTORICO: Record<TipoHistorico, string> = {
   ENCAMINHAMENTO: "Encaminhamento",
   RETORNO: "Retorno do órgão",
   COMENTARIO: "Comentário",
+  ARTICULACAO: "Articulação com mandato",
 };
 
 /** Data de hoje (YYYY-MM-DD) no fuso de Belo Horizonte. */
