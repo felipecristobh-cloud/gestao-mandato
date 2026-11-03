@@ -41,6 +41,7 @@ export function FormLogin({ google, erroInicial }: { google: boolean; erroInicia
           </>
         )}
         <p className="text-center text-xs text-slate-500">Esqueceu a senha? Peça ao administrador para redefinir.</p>
+        <p className="text-center text-xs"><a className="text-slate-500 underline" href="/privacidade">Política de Privacidade</a></p>
       </form>
     </Cartao>
   );
