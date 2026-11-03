@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLICAS = ["/login", "/api/health"];
+const PUBLICAS = ["/login", "/privacidade", "/api/health", "/api/auth/google"];
 
 /** CSP com nonce por requisição: só roda script emitido pelo próprio Next. Mapa: tiles do OpenStreetMap. */
 export function politicaSeguranca(nonce: string, dev = process.env.NODE_ENV !== "production") {

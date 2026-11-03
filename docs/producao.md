@@ -35,6 +35,14 @@ DATABASE_URL="<DIRECT_URL>" ADMIN_EMAIL="voce@dominio" ADMIN_NOME="Seu Nome" ADM
 
 Entrar, trocar a senha e cadastrar a equipe em **Usuários**. Não rodar o seed (dados fictícios) em produção.
 
+## 3.1 Login com Google (opcional)
+
+1. Google Cloud Console → **APIs e serviços → Credenciais → Criar credenciais → ID do cliente OAuth** (Aplicativo da Web). A tela de consentimento pode ficar como **Externo**, só com os escopos `openid`, `email` e `profile`.
+2. URI de redirecionamento autorizado: `https://<domínio>/api/auth/google/callback`.
+3. Na Vercel: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `APP_URL=https://<domínio>`. Novo deploy.
+
+Só entra quem já tem conta **ativa** em Usuários com o mesmo e-mail; o Google não cria conta. Bloqueio por conta e por IP valem igual. No primeiro login pelo Google, a senha provisória é descartada (a pessoa passa a entrar só pelo Google, até o Admin redefinir a senha).
+
 ## 4. Backup diário (GitHub Actions)
 
 Em **Settings → Secrets and variables → Actions** do repositório:

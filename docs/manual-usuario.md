@@ -1,6 +1,6 @@
 # Manual rápido — Gestão do Mandato
 
-**Acesso:** entre com seu e-mail e senha. No primeiro acesso o sistema pede uma senha nova (10+ caracteres, letras e números). 5 senhas erradas bloqueiam por 15 minutos.
+**Acesso:** entre com seu e-mail e senha, ou pelo botão **Entrar com Google** (só funciona com o mesmo Gmail cadastrado em Usuários; quem entra pelo Google não precisa trocar a senha provisória). No primeiro acesso o sistema pede uma senha nova (10+ caracteres, letras e números). 5 senhas erradas bloqueiam por 15 minutos.
 
 **Perfis:**
 - **Admin:** tudo, inclusive usuários, auditoria e anonimização (LGPD).
