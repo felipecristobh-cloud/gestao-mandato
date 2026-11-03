@@ -3,8 +3,8 @@
 Sistema de gestão do mandato do vereador Pedro Patrus (CRM parlamentar):
 **problema → atuação → articulação → recurso → execução → resultado**.
 
-> Estado: **Fase 5 — Entidades e Agenda** (sobre as Fases 1 — Fundação, 2 — Demandas, 3 — Parlamentares e Mandatos e 4 — Emendas).
-> Dashboard completo, relatórios, mapa e upload de documentos vêm nas próximas fases.
+> Estado: **Fase 6 — Dashboard** (sobre as Fases 1 a 5: Fundação, Demandas, Parlamentares e Mandatos, Emendas, Entidades e Agenda).
+> Relatórios, mapa e upload de documentos vêm nas próximas fases.
 
 ## Rodar localmente
 
@@ -92,6 +92,14 @@ docs/adr/             decisões de arquitetura
 - Agenda do vereador: qualquer usuário que cadastra pode **solicitar**; só Coordenação/Admin **confirmam** ou mudam o horário de um compromisso já confirmado.
 - O seed cria 9 entidades (as beneficiárias das emendas + 3 sem CNPJ) e 6 compromissos em volta da data atual (só se não houver nenhum).
 - Decisões em [docs/adr/0006-entidades-agenda.md](docs/adr/0006-entidades-agenda.md).
+
+## Dashboard (Fase 6)
+
+- `/dashboard`: cards e gráficos (Recharts) de demandas e emendas, mais os pontos de atenção.
+  - Filtros: período de entrada das demandas, ano das emendas e "só as minhas".
+  - Clicar num gráfico abre a lista já filtrada.
+- Tudo é calculado no servidor a cada acesso, então qualquer alteração aparece na hora.
+- Definições e decisões em [docs/adr/0007-dashboard.md](docs/adr/0007-dashboard.md).
 
 ## Segurança
 

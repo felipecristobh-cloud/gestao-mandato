@@ -3,7 +3,8 @@ import type { Db, Tx } from "@/server/db";
 import { exigir, podeEditarRegistro, proibir, type Ator } from "@/server/authz";
 import { diferenca, registrarAuditoria } from "@/server/audit";
 import { conflito, naoEncontrado, validacao } from "@/server/errors";
-import { formatarData, hojeISO } from "@/lib/demandas";
+import { deISO, formatarData, hojeISO, somarDias } from "@/lib/demandas";
+import { DIAS_PRAZO_EMENDA, DIAS_SEM_MOVIMENTACAO } from "@/lib/dashboard";
 import {
   ROTULO_DOCUMENTO, ROTULO_LANCAMENTO, ROTULO_STATUS_EMENDA, STATUS_ANTES_EMPENHO, STATUS_EMENDA_FINAIS, STATUS_EXIGE_MOTIVO,
   centavos, decimalDe, erroValores, formatarMoeda, resumoFinanceiro, totaisLancamentos, type Valores,
@@ -46,7 +47,23 @@ export const rotuloEmendaVinculo = (e: { numero: string | null; ano: number }) =
 
 // ---------- consulta ----------
 
-export type FiltrosEmenda = { q?: string; esfera?: string; status?: string; ano?: string; parlamentarId?: string; responsavel?: string; pagina?: number };
+export type FiltrosEmenda = { q?: string; esfera?: string; status?: string; ano?: string; parlamentarId?: string; responsavel?: string; alerta?: string; pagina?: number };
+
+/** Em andamento, cadastrada há mais de N dias e sem histórico nem lançamento nesse intervalo. */
+export function whereEmendaParada(hoje = hojeISO()): Prisma.EmendaWhereInput {
+  const limite = deISO(somarDias(hoje, -DIAS_SEM_MOVIMENTACAO));
+  return {
+    status: { notIn: STATUS_EMENDA_FINAIS },
+    criadoEm: { lt: limite },
+    historico: { none: { data: { gte: limite } } },
+    lancamentos: { none: { criadoEm: { gte: limite } } },
+  };
+}
+
+/** Em andamento com prazo vencido ou nos próximos N dias. */
+export function whereEmendaPrazo(hoje = hojeISO()): Prisma.EmendaWhereInput {
+  return { status: { notIn: STATUS_EMENDA_FINAIS }, prazo: { lte: deISO(somarDias(hoje, DIAS_PRAZO_EMENDA)) } };
+}
 
 function whereEmendas(ator: Ator, f: FiltrosEmenda): Prisma.EmendaWhereInput {
   const e: Prisma.EmendaWhereInput[] = [];
@@ -66,6 +83,8 @@ function whereEmendas(ator: Ator, f: FiltrosEmenda): Prisma.EmendaWhereInput {
   if (f.parlamentarId && /^[0-9a-f-]{36}$/i.test(f.parlamentarId)) e.push({ mandatos: { some: { mandato: { parlamentarId: f.parlamentarId } } } });
   if (f.responsavel === "eu") e.push({ responsavelId: ator.id });
   else if (f.responsavel === "sem") e.push({ responsavelId: null });
+  if (f.alerta === "parada") e.push(whereEmendaParada());
+  else if (f.alerta === "prazo") e.push(whereEmendaPrazo());
   return e.length ? { AND: e } : {};
 }
 
