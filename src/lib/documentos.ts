@@ -13,7 +13,8 @@ export const ROTULO_CATEGORIA: Record<CategoriaDocumento, string> = {
   OUTRO: "Outro",
 };
 
-export const TAMANHO_MAX = 10 * 1024 * 1024;
+/** 10 MB por padrão. Na Vercel (corpo de requisição até 4,5 MB) use NEXT_PUBLIC_DOCUMENTOS_MAX_MB=4. */
+export const TAMANHO_MAX = Math.min(10, Number(process.env.NEXT_PUBLIC_DOCUMENTOS_MAX_MB) || 10) * 1024 * 1024;
 
 type Assinatura = "pdf" | "png" | "jpg" | "webp" | "docx" | "xlsx" | "odt" | "ods" | "ole";
 

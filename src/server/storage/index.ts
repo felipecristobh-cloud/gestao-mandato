@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID }
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-/** Onde os arquivos ficam. Hoje: disco do servidor (fora da pasta pública). Na produção: storage compatível com S3 (Fase 10). */
+/** Onde os arquivos ficam: disco do servidor (fora da pasta pública) ou bucket privado do Supabase Storage. Sempre cifrados aqui antes de sair. */
 export type Storage = {
   salvar(chave: string, dados: Buffer): Promise<void>;
   ler(chave: string): Promise<Buffer>;
@@ -69,5 +69,56 @@ export function storageLocal(dir = process.env.DOCUMENTOS_DIR || path.join(proce
   };
 }
 
+type ConfigSupabase = { url: string; chaveServico: string; bucket: string };
+
+/** Bucket privado do Supabase Storage (API REST, chave service_role só no servidor). O conteúdo já sai cifrado. */
+export function storageSupabase(cfg: ConfigSupabase, f: typeof fetch = fetch): Storage {
+  const base = `${cfg.url.replace(/\/+$/, "")}/storage/v1/object`;
+  const auth = { Authorization: `Bearer ${cfg.chaveServico}`, apikey: cfg.chaveServico };
+  const alvo = (chave: string) => {
+    conferirChave(chave);
+    return `${base}/${encodeURIComponent(cfg.bucket)}/${chave}`;
+  };
+  const falha = async (r: Response, acao: string) => {
+    throw new Error(`Storage: falha ao ${acao} (${r.status}).`);
+  };
+  return {
+    async salvar(chave, dados) {
+      const corpo = cifrar(chave, dados);
+      const r = await f(alvo(chave), {
+        method: "POST",
+        headers: { ...auth, "Content-Type": "application/octet-stream", "x-upsert": "false" },
+        body: new Uint8Array(corpo),
+      });
+      if (!r.ok) await falha(r, "salvar");
+    },
+    async ler(chave) {
+      const r = await f(alvo(chave), { headers: auth, cache: "no-store" });
+      if (!r.ok) await falha(r, "ler");
+      return decifrar(chave, Buffer.from(await r.arrayBuffer()));
+    },
+    async remover(chave) {
+      conferirChave(chave);
+      const r = await f(`${base}/${encodeURIComponent(cfg.bucket)}`, {
+        method: "DELETE",
+        headers: { ...auth, "Content-Type": "application/json" },
+        body: JSON.stringify({ prefixes: [chave] }),
+      });
+      if (!r.ok && r.status !== 404) await falha(r, "remover");
+    },
+  };
+}
+
+/** SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY ligam o Supabase Storage; sem eles, disco local. Em produção o disco só vale com DOCUMENTOS_DIR explícito. */
+export function storageDoAmbiente(env: Record<string, string | undefined> = process.env): Storage {
+  const url = env.SUPABASE_URL?.trim();
+  const chaveServico = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (url && chaveServico) return storageSupabase({ url, chaveServico, bucket: env.DOCUMENTOS_BUCKET?.trim() || "documentos" });
+  if (env.NODE_ENV === "production" && !env.DOCUMENTOS_DIR) {
+    throw new Error("Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (ou DOCUMENTOS_DIR) para guardar documentos em produção.");
+  }
+  return storageLocal(env.DOCUMENTOS_DIR || undefined);
+}
+
 let padrao: Storage | undefined;
-export const storagePadrao = () => (padrao ??= storageLocal());
+export const storagePadrao = () => (padrao ??= storageDoAmbiente());
