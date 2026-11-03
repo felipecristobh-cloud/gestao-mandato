@@ -10,11 +10,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const itens = MENU.filter((i) => !i.permissao || pode(u, i.permissao));
 
   const rodape = (
-    <div className="border-t border-slate-200 p-4">
-      <p className="truncate text-sm font-medium text-slate-900">{u.nome}</p>
-      <p className="truncate text-xs text-slate-500">{ROTULO_PERFIL[u.perfil]}</p>
+    <div className="border-t border-neutral-800 p-4">
+      <p className="truncate text-sm font-medium text-white">{u.nome}</p>
+      <p className="truncate text-xs text-neutral-400">{ROTULO_PERFIL[u.perfil]}</p>
       <form action={sairAction} className="mt-3">
-        <button type="submit" className="flex min-h-9 items-center gap-2 rounded-md px-2 text-sm text-slate-700 hover:bg-slate-100">
+        <button type="submit" className="flex min-h-9 items-center gap-2 rounded-md px-2 text-sm text-neutral-300 hover:bg-white/10 hover:text-white">
           <LogOut className="size-4" aria-hidden /> Sair
         </button>
       </form>
