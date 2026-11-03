@@ -32,6 +32,7 @@ export const demandaCamposSchema = z.object({
   prazo: dataOpcional,
   responsavelId: uuidOpcional,
   orgaoId: idInteiro("Órgão inválido."),
+  entidadeId: uuidOpcional,
   observacoes: opcional(4000),
 });
 

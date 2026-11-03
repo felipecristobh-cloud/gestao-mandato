@@ -4,6 +4,7 @@ import { exigirUsuario } from "@/server/auth/current";
 import { prisma } from "@/server/db";
 import { pode } from "@/server/authz";
 import { contadoresDemandas } from "@/server/services/demandas";
+import { contadoresAgenda } from "@/server/services/agenda";
 import { ROTULO_PERFIL } from "@/server/authz";
 import { Aviso, CabecalhoPagina, Cartao } from "@/components/ui";
 import { MENU } from "@/components/layout/menu";
@@ -13,7 +14,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ senha?: string }> }) {
   const u = await exigirUsuario();
   const { senha } = await searchParams;
-  const c = pode(u, "dados:ver") ? await contadoresDemandas(prisma, u) : null;
+  const [c, a] = pode(u, "dados:ver") ? await Promise.all([contadoresDemandas(prisma, u), contadoresAgenda(prisma, u)]) : [null, null];
   const cards = c ? [
     { rotulo: "Demandas abertas", valor: c.abertas, href: "/demandas?status=abertas", cor: "text-slate-900" },
     { rotulo: "Atrasadas", valor: c.atrasadas, href: "/demandas?prazo=atrasadas", cor: "text-red-700" },
@@ -21,6 +22,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     { rotulo: "Sem responsável", valor: c.semResponsavel, href: "/demandas?status=abertas&responsavel=sem", cor: "text-slate-900" },
     { rotulo: "Minhas abertas", valor: c.minhas, href: "/demandas?status=abertas&responsavel=eu", cor: "text-marca-800" },
   ] : [];
+  if (a) cards.push(
+    { rotulo: "Compromissos hoje", valor: a.hoje, href: "/agenda?visao=lista", cor: "text-slate-900" },
+    { rotulo: "Próximos 7 dias", valor: a.semana, href: "/agenda", cor: "text-slate-900" },
+    { rotulo: "Agenda do vereador a confirmar", valor: a.pendentes, href: "/agenda?visao=lista&status=SOLICITADO&vereador=1", cor: "text-amber-700" },
+  );
   const modulos = MENU.filter((m) => m.fase).sort((a, b) => (a.fase ?? 0) - (b.fase ?? 0));
   return (
     <>
@@ -41,7 +47,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <Cartao>
         <h2 className="text-base font-semibold">Próximos módulos</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Demandas já funcionam. Os indicadores e gráficos completos do dashboard chegam na Fase 6.
+          Demandas, emendas, parlamentares, entidades e agenda já funcionam. Os indicadores e gráficos completos do dashboard chegam na Fase 6.
         </p>
         <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {modulos.map((m) => (

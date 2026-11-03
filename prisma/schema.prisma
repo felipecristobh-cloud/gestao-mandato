@@ -59,6 +59,14 @@ model Usuario {
   vinculosEmenda       EmendaMandato[]
   documentosEmenda     EmendaDocumento[]
 
+  entidadesCriadas         Entidade[]
+  vinculosEntidade         EntidadeMandato[]
+  compromissosResponsavel  Compromisso[]             @relation("CompromissoResponsavel")
+  compromissosCriados      Compromisso[]             @relation("CompromissoCriadoPor")
+  compromissosParticipante CompromissoParticipante[]
+  historicoCompromissos    CompromissoHistorico[]
+  vinculosCompromisso      CompromissoVinculo[]
+
   @@map("usuario")
 }
 
@@ -140,6 +148,9 @@ model Bairro {
   demandas Demanda[]
   emendas  Emenda[]
 
+  entidades    Entidade[]
+  compromissos Compromisso[]
+
   @@unique([nome, regionalId])
   @@map("bairro")
 }
@@ -150,6 +161,8 @@ model Tema {
   ativo Boolean @default(true)
 
   demandas Demanda[]
+
+  entidades Entidade[]
 
   @@map("tema")
 }
@@ -213,6 +226,7 @@ model Demanda {
   orgaoId       Int?          @map("orgao_id")
   dataEntrada   DateTime      @default(now()) @map("data_entrada") @db.Date
   dataConclusao DateTime?     @map("data_conclusao") @db.Date
+  entidadeId    String?       @map("entidade_id") @db.Uuid
   observacoes   String?
   criadoPorId   String?       @map("criado_por_id") @db.Uuid
   criadoEm      DateTime      @default(now()) @map("criado_em")
@@ -228,11 +242,15 @@ model Demanda {
   encaminhamentos Encaminhamento[]
   mandatos        DemandaMandato[]
 
+  entidade     Entidade?            @relation(fields: [entidadeId], references: [id], onDelete: SetNull)
+  compromissos CompromissoVinculo[]
+
   @@index([status])
   @@index([prazo])
   @@index([responsavelId])
   @@index([bairroId])
   @@index([temaId])
+  @@index([entidadeId])
   @@map("demanda")
 }
 
@@ -333,6 +351,8 @@ model Parlamentar {
   criadoPor Usuario?  @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
   mandatos  Mandato[]
 
+  compromissos CompromissoVinculo[]
+
   @@index([nome])
   @@map("parlamentar")
 }
@@ -359,6 +379,9 @@ model Mandato {
   criadoPor   Usuario?         @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
   demandas    DemandaMandato[]
   emendas     EmendaMandato[]
+
+  entidades    EntidadeMandato[]
+  compromissos CompromissoVinculo[]
 
   @@index([parlamentarId])
   @@map("mandato")
@@ -467,6 +490,7 @@ model Emenda {
   acaoOrcamentaria String?      @map("acao_orcamentaria")
   prazo            DateTime?    @db.Date
   responsavelId    String?      @map("responsavel_id") @db.Uuid
+  entidadeId       String?      @map("entidade_id") @db.Uuid
   observacoes      String?
   criadoPorId      String?      @map("criado_por_id") @db.Uuid
   criadoEm         DateTime     @default(now()) @map("criado_em")
@@ -481,10 +505,14 @@ model Emenda {
   mandatos    EmendaMandato[]
   documentos  EmendaDocumento[]
 
+  entidade     Entidade?            @relation(fields: [entidadeId], references: [id], onDelete: SetNull)
+  compromissos CompromissoVinculo[]
+
   @@unique([esfera, ano, numero])
   @@index([status])
   @@index([ano])
   @@index([responsavelId])
+  @@index([entidadeId])
   @@map("emenda")
 }
 
@@ -560,4 +588,191 @@ model EmendaHistorico {
 
   @@index([emendaId, data])
   @@map("emenda_historico")
+}
+
+// ---------- Fase 5: Entidades e Agenda ----------
+
+enum TipoEntidade {
+  ASSOCIACAO
+  OSC
+  COLETIVO
+  ESCOLA
+  SAUDE
+  RELIGIOSA
+  COOPERATIVA
+  SINDICATO
+  EMPRESA
+  ORGAO_PUBLICO
+  OUTRO
+}
+
+model Entidade {
+  id           String       @id @default(uuid()) @db.Uuid
+  nome         String
+  cnpj         String?      @unique @db.Char(14)
+  tipo         TipoEntidade @default(ASSOCIACAO)
+  temaId       Int?         @map("tema_id")
+  endereco     String?
+  bairroId     Int?         @map("bairro_id")
+  telefone     String?
+  email        String?
+  responsavel  String?
+  observacoes  String?
+  ativo        Boolean      @default(true)
+  criadoPorId  String?      @map("criado_por_id") @db.Uuid
+  criadoEm     DateTime     @default(now()) @map("criado_em")
+  atualizadoEm DateTime     @updatedAt @map("atualizado_em")
+
+  tema         Tema?                @relation(fields: [temaId], references: [id])
+  bairro       Bairro?              @relation(fields: [bairroId], references: [id])
+  criadoPor    Usuario?             @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+  demandas     Demanda[]
+  emendas      Emenda[]
+  mandatos     EntidadeMandato[]
+  compromissos CompromissoVinculo[]
+
+  @@index([nome])
+  @@index([bairroId])
+  @@map("entidade")
+}
+
+model EntidadeMandato {
+  id          String           @id @default(uuid()) @db.Uuid
+  entidadeId  String           @map("entidade_id") @db.Uuid
+  mandatoId   String           @map("mandato_id") @db.Uuid
+  tipo        TipoParticipacao
+  observacoes String?
+  usuarioId   String?          @map("usuario_id") @db.Uuid
+  criadoEm    DateTime         @default(now()) @map("criado_em")
+
+  entidade Entidade @relation(fields: [entidadeId], references: [id], onDelete: Cascade)
+  mandato  Mandato  @relation(fields: [mandatoId], references: [id], onDelete: Restrict)
+  usuario  Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@unique([entidadeId, mandatoId, tipo])
+  @@index([mandatoId])
+  @@map("entidade_mandato")
+}
+
+enum TipoCompromisso {
+  REUNIAO
+  VISITA
+  PLENARIA
+  AUDIENCIA
+  EVENTO
+  REUNIAO_INSTITUCIONAL
+  REUNIAO_ENTIDADE
+  ATIVIDADE_EXTERNA
+}
+
+enum StatusCompromisso {
+  SOLICITADO
+  CONFIRMADO
+  REALIZADO
+  ADIADO
+  CANCELADO
+}
+
+enum TipoHistoricoCompromisso {
+  CRIACAO
+  EDICAO
+  STATUS
+  VINCULO
+  RESULTADO
+  COMENTARIO
+}
+
+model Compromisso {
+  id              String            @id @default(uuid()) @db.Uuid
+  titulo          String
+  tipo            TipoCompromisso
+  status          StatusCompromisso @default(SOLICITADO)
+  inicio          DateTime          @db.Timestamptz(6)
+  fim             DateTime          @db.Timestamptz(6)
+  local           String?
+  bairroId        Int?              @map("bairro_id")
+  pauta           String?
+  resultado       String?
+  encaminhamentos String?
+  agendaVereador  Boolean           @default(false) @map("agenda_vereador")
+  responsavelId   String?           @map("responsavel_id") @db.Uuid
+  criadoPorId     String?           @map("criado_por_id") @db.Uuid
+  criadoEm        DateTime          @default(now()) @map("criado_em")
+  atualizadoEm    DateTime          @updatedAt @map("atualizado_em")
+
+  bairro        Bairro?                   @relation(fields: [bairroId], references: [id])
+  responsavel   Usuario?                  @relation("CompromissoResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  criadoPor     Usuario?                  @relation("CompromissoCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  participantes CompromissoParticipante[]
+  vinculos      CompromissoVinculo[]
+  historico     CompromissoHistorico[]
+
+  @@index([inicio])
+  @@index([status])
+  @@index([responsavelId])
+  @@map("compromisso")
+}
+
+model CompromissoParticipante {
+  compromissoId String @map("compromisso_id") @db.Uuid
+  usuarioId     String @map("usuario_id") @db.Uuid
+
+  compromisso Compromisso @relation(fields: [compromissoId], references: [id], onDelete: Cascade)
+  usuario     Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@id([compromissoId, usuarioId])
+  @@index([usuarioId])
+  @@map("compromisso_participante")
+}
+
+/**
+ * Liga um compromisso a exatamente um registro (CHECK no banco).
+ */
+model CompromissoVinculo {
+  id            String   @id @default(uuid()) @db.Uuid
+  compromissoId String   @map("compromisso_id") @db.Uuid
+  demandaId     String?  @map("demanda_id") @db.Uuid
+  emendaId      String?  @map("emenda_id") @db.Uuid
+  entidadeId    String?  @map("entidade_id") @db.Uuid
+  parlamentarId String?  @map("parlamentar_id") @db.Uuid
+  mandatoId     String?  @map("mandato_id") @db.Uuid
+  usuarioId     String?  @map("usuario_id") @db.Uuid
+  criadoEm      DateTime @default(now()) @map("criado_em")
+
+  compromisso Compromisso  @relation(fields: [compromissoId], references: [id], onDelete: Cascade)
+  demanda     Demanda?     @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  emenda      Emenda?      @relation(fields: [emendaId], references: [id], onDelete: Cascade)
+  entidade    Entidade?    @relation(fields: [entidadeId], references: [id], onDelete: Cascade)
+  parlamentar Parlamentar? @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+  mandato     Mandato?     @relation(fields: [mandatoId], references: [id], onDelete: Restrict)
+  usuario     Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@unique([compromissoId, demandaId])
+  @@unique([compromissoId, emendaId])
+  @@unique([compromissoId, entidadeId])
+  @@unique([compromissoId, parlamentarId])
+  @@unique([compromissoId, mandatoId])
+  @@index([demandaId])
+  @@index([emendaId])
+  @@index([entidadeId])
+  @@index([parlamentarId])
+  @@index([mandatoId])
+  @@map("compromisso_vinculo")
+}
+
+model CompromissoHistorico {
+  id             String                   @id @default(uuid()) @db.Uuid
+  compromissoId  String                   @map("compromisso_id") @db.Uuid
+  usuarioId      String?                  @map("usuario_id") @db.Uuid
+  data           DateTime                 @default(now())
+  tipo           TipoHistoricoCompromisso
+  statusAnterior StatusCompromisso?       @map("status_anterior")
+  statusNovo     StatusCompromisso?       @map("status_novo")
+  descricao      String
+
+  compromisso Compromisso @relation(fields: [compromissoId], references: [id], onDelete: Cascade)
+  usuario     Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([compromissoId, data])
+  @@map("compromisso_historico")
 }

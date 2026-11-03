@@ -13,6 +13,7 @@ export type OpcoesFormEmenda = {
   orgaos: { id: number; nome: string; sigla: string | null }[];
   regionais: { id: number; nome: string; bairros: { id: number; nome: string }[] }[];
   responsaveis: { id: string; nome: string }[];
+  entidades?: { id: string; rotulo: string }[];
 };
 
 const areaTexto =
@@ -95,6 +96,16 @@ export function FormEmenda({ acao, opcoes, valores: iniciais, edicao }: { acao: 
         </Grupo>
 
         <Grupo titulo="Beneficiário e local">
+          {opcoes.entidades && (
+            <div className="sm:col-span-2">
+              <Rotulo htmlFor="entidadeId">Entidade beneficiária (cadastro)</Rotulo>
+              <Selecao id="entidadeId" name="entidadeId" defaultValue={v.entidadeId ?? ""}>
+                <option value="">— sem cadastro (usar texto livre) —</option>
+                {opcoes.entidades.map((e) => <option key={e.id} value={e.id}>{e.rotulo}</option>)}
+              </Selecao>
+              <p className="mt-1 text-xs text-slate-500">Se escolher uma entidade e deixar nome/CNPJ em branco, eles são preenchidos pelo cadastro.</p>
+            </div>
+          )}
           <div>
             <Rotulo htmlFor="beneficiario">Beneficiário</Rotulo>
             <Campo id="beneficiario" name="beneficiario" maxLength={200} defaultValue={v.beneficiario} />

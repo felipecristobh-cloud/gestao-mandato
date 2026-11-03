@@ -17,12 +17,12 @@ export default async function EditarDemandaPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const d = await carregarDemanda(ator, id);
   if (!d.podeEditar) redirect(`/demandas/${d.id}`);
-  const opcoes = await opcoesDemanda(prisma);
+  const opcoes = await opcoesDemanda(prisma, d.entidadeId);
   const s = (v: string | number | null | undefined) => (v === null || v === undefined ? "" : String(v));
   const valores = {
     solicitanteNome: d.pessoa.nome, telefone: s(d.pessoa.telefone), email: s(d.pessoa.email),
     endereco: s(d.endereco), bairroId: s(d.bairroId), temaId: s(d.temaId), tipo: d.tipo, descricao: d.descricao,
-    prioridade: d.prioridade, prazo: d.prazo ? dataISO(d.prazo) : "", responsavelId: s(d.responsavelId), orgaoId: s(d.orgaoId),
+    prioridade: d.prioridade, prazo: d.prazo ? dataISO(d.prazo) : "", responsavelId: s(d.responsavelId), orgaoId: s(d.orgaoId), entidadeId: s(d.entidadeId),
     observacoes: s(d.observacoes),
   };
   return (

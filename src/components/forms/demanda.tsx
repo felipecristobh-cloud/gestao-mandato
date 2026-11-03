@@ -12,6 +12,7 @@ export type OpcoesDemanda = {
   orgaos: { id: number; nome: string; sigla: string | null }[];
   regionais: { id: number; nome: string; bairros: { id: number; nome: string }[] }[];
   responsaveis: { id: string; nome: string }[];
+  entidades?: { id: string; rotulo: string }[];
 };
 
 const areaTexto =
@@ -160,6 +161,15 @@ export function FormDemanda({ acao, opcoes, valores: iniciais, edicao }: { acao:
               {opcoes.orgaos.map((o) => <option key={o.id} value={o.id}>{o.sigla ? `${o.sigla} — ${o.nome}` : o.nome}</option>)}
             </Selecao>
           </div>
+          {opcoes.entidades && (
+            <div className="sm:col-span-2">
+              <Rotulo htmlFor="entidadeId">Entidade relacionada</Rotulo>
+              <Selecao id="entidadeId" name="entidadeId" defaultValue={v.entidadeId ?? ""}>
+                <option value="">— nenhuma —</option>
+                {opcoes.entidades.map((e) => <option key={e.id} value={e.id}>{e.rotulo}</option>)}
+              </Selecao>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <Rotulo htmlFor="observacoes">Observações internas</Rotulo>
             <Area id="observacoes" name="observacoes" rows={2} maxLength={4000} defaultValue={v.observacoes} />

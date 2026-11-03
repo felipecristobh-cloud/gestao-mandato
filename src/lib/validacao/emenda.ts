@@ -39,6 +39,7 @@ export const emendaSchema = z.object({
   acaoOrcamentaria: opcional(200),
   prazo: dataOpcional,
   responsavelId: uuidOpcional,
+  entidadeId: uuidOpcional,
   observacoes: opcional(4000),
 });
 export type EmendaEntrada = z.input<typeof emendaSchema>;
