@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db, limparBanco, criarUsuarioTeste } from "../setup/db";
 import { autenticar, MAX_TENTATIVAS } from "@/server/auth/login";
 import { autenticarGoogle } from "@/server/auth/google";
-import { validarSessao, encerrarSessao, hashToken } from "@/server/auth/session";
+import { validarSessao, encerrarSessao, hashToken, DURACAO_SESSAO_MS } from "@/server/auth/session";
 
 beforeEach(limparBanco);
 
@@ -60,6 +60,20 @@ describe("sessão", () => {
     await db.sessao.updateMany({ data: { expiraEm: new Date(Date.now() - 1) } });
     expect(await validarSessao(db, r.token)).toBeNull();
     expect(await db.sessao.count()).toBe(0);
+  });
+
+  it("sessão dura 7 dias e é renovada com o uso (no máximo uma vez por dia)", async () => {
+    const u = await criarUsuarioTeste("ASSESSOR");
+    const r = await autenticar(db, u.email, "SenhaForte123");
+    if (!r.ok) throw new Error("login falhou");
+    expect(DURACAO_SESSAO_MS).toBe(7 * 24 * 60 * 60 * 1000);
+    const lerExpira = async () => (await db.sessao.findFirstOrThrow()).expiraEm.getTime();
+    const inicial = await lerExpira();
+    await validarSessao(db, r.token);
+    expect(await lerExpira()).toBe(inicial); // usada há menos de 1 dia: não grava de novo
+    await db.sessao.updateMany({ data: { expiraEm: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) } });
+    expect((await validarSessao(db, r.token))?.id).toBe(u.id);
+    expect(await lerExpira()).toBeGreaterThan(Date.now() + DURACAO_SESSAO_MS - 60_000);
   });
 
   it("logout encerra a sessão; token inventado não vale", async () => {
