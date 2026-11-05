@@ -2,13 +2,10 @@ import { PrismaClient, type Esfera, type Perfil, type StatusCompromisso, type Ti
 import { hashSenha } from "../src/server/auth/password";
 import { deISO, hojeISO, somarDias } from "../src/lib/demandas";
 import { completarCnpj, decimalDe } from "../src/lib/emendas";
+import { BAIRROS, REGIONAIS, semearCadastrosBase } from "./cadastros-base";
 
 const db = new PrismaClient();
 
-const REGIONAIS = [
-  ["BARREIRO", "Barreiro"], ["CENTRO_SUL", "Centro-Sul"], ["LESTE", "Leste"], ["NORDESTE", "Nordeste"],
-  ["NOROESTE", "Noroeste"], ["NORTE", "Norte"], ["OESTE", "Oeste"], ["PAMPULHA", "Pampulha"], ["VENDA_NOVA", "Venda Nova"],
-] as const;
 
 // Somente pessoas fictícias. Nunca usar dados reais neste arquivo.
 const USUARIOS: { nome: string; email: string; perfil: Perfil; cargo: string }[] = [
@@ -19,83 +16,24 @@ const USUARIOS: { nome: string; email: string; perfil: Perfil; cargo: string }[]
   { nome: "Elisa Consulta", email: "consulta@exemplo.local", perfil: "CONSULTA", cargo: "Estagiária" },
 ];
 
-const BAIRROS: Record<string, string[]> = {
-  BARREIRO: ["Barreiro", "Milionários", "Lindéia"],
-  CENTRO_SUL: ["Centro", "Savassi", "Serra"],
-  LESTE: ["Santa Tereza", "Floresta", "Sagrada Família"],
-  NORDESTE: ["Cidade Nova", "São Paulo", "Ipiranga"],
-  NOROESTE: ["Padre Eustáquio", "Carlos Prates", "Caiçara"],
-  NORTE: ["Primeiro de Maio", "Tupi", "Jaqueline"],
-  OESTE: ["Buritis", "Gameleira", "Salgado Filho"],
-  PAMPULHA: ["Ouro Preto", "Santa Amélia", "Castelo"],
-  VENDA_NOVA: ["Venda Nova", "Mantiqueira", "Céu Azul"],
-};
 
-// Centro aproximado de cada bairro (OpenStreetMap/Nominatim), usado como localização aproximada no mapa.
-const COORD_BAIRRO: Record<string, [number, number]> = {
-  "Barreiro": [-19.97698, -44.01855],
-  "Milionários": [-19.98051, -44.00183],
-  "Lindéia": [-19.97741, -44.05064],
-  "Centro": [-19.91933, -43.94035],
-  "Savassi": [-19.93725, -43.93558],
-  "Serra": [-19.94056, -43.91842],
-  "Santa Tereza": [-19.91489, -43.91705],
-  "Floresta": [-19.91275, -43.9302],
-  "Sagrada Família": [-19.90033, -43.92372],
-  "Cidade Nova": [-19.88924, -43.92486],
-  "São Paulo": [-19.86869, -43.92394],
-  "Ipiranga": [-19.88177, -43.93227],
-  "Padre Eustáquio": [-19.9143, -43.97936],
-  "Carlos Prates": [-19.91355, -43.96575],
-  "Caiçara": [-19.8997, -43.96526],
-  "Primeiro de Maio": [-19.86097, -43.92911],
-  "Tupi": [-19.83663, -43.92556],
-  "Jaqueline": [-19.80335, -43.93235],
-  "Buritis": [-19.97658, -43.96742],
-  "Gameleira": [-19.93104, -43.98719],
-  "Salgado Filho": [-19.94315, -43.98296],
-  "Ouro Preto": [-19.87225, -43.98299],
-  "Santa Amélia": [-19.83908, -43.97788],
-  "Castelo": [-19.8793, -43.9996],
-  "Venda Nova": [-19.81663, -43.95793],
-  "Mantiqueira": [-19.79287, -43.98333],
-  "Céu Azul": [-19.82275, -44.00398],
-};
+const COORD_BAIRRO = new Map(Object.values(BAIRROS).flat().map(([nome, latitude, longitude]) => [nome, [latitude, longitude] as const]));
 
 // Metade das demandas fictícias ganha um ponto perto do centro do bairro; a outra metade fica "aproximada".
 function pontoFicticio(bairro: string, i: number) {
-  const c = COORD_BAIRRO[bairro];
+  const c = COORD_BAIRRO.get(bairro);
   if (!c || i % 2 === 1) return {};
   return { latitude: Math.round((c[0] + 0.003 * Math.sin(i)) * 1e6) / 1e6, longitude: Math.round((c[1] + 0.003 * Math.cos(i)) * 1e6) / 1e6 };
 }
 
-const TEMAS = [
-  "Assistência social", "Cultura", "Educação", "Esporte e lazer", "Habitação", "Iluminação pública", "Infraestrutura e obras",
-  "Limpeza urbana", "Meio ambiente", "Mobilidade e trânsito", "Saneamento", "Saúde", "Segurança", "Outros",
-];
 
-const ORGAOS: { nome: string; sigla: string; esfera: Esfera }[] = [
-  { nome: "Secretaria Municipal de Obras e Infraestrutura", sigla: "SMOBI", esfera: "MUNICIPAL" },
-  { nome: "Secretaria Municipal de Saúde", sigla: "SMSA", esfera: "MUNICIPAL" },
-  { nome: "Secretaria Municipal de Educação", sigla: "SMED", esfera: "MUNICIPAL" },
-  { nome: "Secretaria Municipal de Assistência Social", sigla: "SMASAC", esfera: "MUNICIPAL" },
-  { nome: "Secretaria Municipal de Meio Ambiente", sigla: "SMMA", esfera: "MUNICIPAL" },
-  { nome: "Superintendência de Limpeza Urbana", sigla: "SLU", esfera: "MUNICIPAL" },
-  { nome: "BHTrans", sigla: "BHTRANS", esfera: "MUNICIPAL" },
-  { nome: "Companhia Urbanizadora e de Habitação de Belo Horizonte", sigla: "URBEL", esfera: "MUNICIPAL" },
-  { nome: "Defesa Civil Municipal", sigla: "DEFESA CIVIL", esfera: "MUNICIPAL" },
-  { nome: "Guarda Civil Municipal", sigla: "GCM", esfera: "MUNICIPAL" },
-  { nome: "Companhia de Saneamento de Minas Gerais", sigla: "COPASA", esfera: "ESTADUAL" },
-  { nome: "Companhia Energética de Minas Gerais", sigla: "CEMIG", esfera: "ESTADUAL" },
-  { nome: "Polícia Militar de Minas Gerais", sigla: "PMMG", esfera: "ESTADUAL" },
-];
 
 // [nome fictício, bairro, tema, tipo, prioridade, status, prazo (dias a partir de hoje), responsável (e-mail), órgão, descrição]
 const DEMANDAS: [string, string, string, TipoDemanda, Prioridade, StatusDemanda, number | null, string | null, string | null, string][] = [
   ["Maria Exemplo da Silva", "Santa Tereza", "Infraestrutura e obras", "RECLAMACAO", "ALTA", "ENCAMINHADA", -5, "assessor", "SMOBI", "Buraco grande na Rua Fictícia A, perto da escola. Carros desviando pela calçada."],
   ["Maria Exemplo da Silva", "Santa Tereza", "Iluminação pública", "SOLICITACAO", "MEDIA", "NOVA", 10, null, null, "Três postes apagados na praça do bairro há duas semanas."],
   ["João Teste Pereira", "Venda Nova", "Saúde", "SOLICITACAO", "URGENTE", "AGUARDANDO_RETORNO", -12, "assessor2", "SMSA", "Pedido de agilidade em consulta com especialista (cardiologia) no centro de saúde."],
-  ["Ana Fictícia Souza", "Barreiro", "Educação", "SOLICITACAO", "ALTA", "EM_ANALISE", 3, "assessor", null, "Vaga em EMEI para criança de 3 anos; família na lista de espera desde março."],
+  ["Ana Fictícia Souza", "Barreiro de Baixo", "Educação", "SOLICITACAO", "ALTA", "EM_ANALISE", 3, "assessor", null, "Vaga em EMEI para criança de 3 anos; família na lista de espera desde março."],
   ["Pedro Modelo Santos", "Buritis", "Mobilidade e trânsito", "SUGESTAO", "MEDIA", "ENCAMINHADA", 20, "coordenacao", "BHTRANS", "Faixa de pedestre e redutor de velocidade na avenida em frente ao supermercado."],
   ["Lúcia Amostra Lima", "Cidade Nova", "Limpeza urbana", "RECLAMACAO", "BAIXA", "RESOLVIDA", -20, "assessor2", "SLU", "Lote vago com acúmulo de lixo e entulho."],
   ["Rafael Exemplo Costa", "Padre Eustáquio", "Saneamento", "RECLAMACAO", "ALTA", "EM_ANDAMENTO", 0, "assessor", "COPASA", "Vazamento de esgoto na rua há mais de um mês."],
@@ -105,26 +43,16 @@ const DEMANDAS: [string, string, string, TipoDemanda, Prioridade, StatusDemanda,
   ["Fernanda Teste Dias", "Castelo", "Esporte e lazer", "SUGESTAO", "BAIXA", "NOVA", 28, null, null, "Reforma da quadra poliesportiva da praça."],
   ["Gustavo Exemplo Nunes", "Floresta", "Segurança", "DENUNCIA", "URGENTE", "AGUARDANDO_RETORNO", -2, "assessor", "GCM", "Pontos de pouca iluminação e relatos de assaltos perto do ponto de ônibus."],
   ["Helena Amostra Ramos", "Mantiqueira", "Infraestrutura e obras", "SOLICITACAO", "ALTA", "EM_ANDAMENTO", 40, "assessor2", "SMOBI", "Muro de contenção com rachaduras após as chuvas."],
-  ["Igor Fictício Barbosa", "Caiçara", "Cultura", "SOLICITACAO", "BAIXA", "CANCELADA", null, "assessor", null, "Apoio para evento cultural do bairro (cancelado pelo solicitante)."],
+  ["Igor Fictício Barbosa", "Caiçaras", "Cultura", "SOLICITACAO", "BAIXA", "CANCELADA", null, "assessor", null, "Apoio para evento cultural do bairro (cancelado pelo solicitante)."],
   ["Juliana Teste Freitas", "Céu Azul", "Saúde", "RECLAMACAO", "ALTA", "NAO_RESOLVIDA", -15, "coordenacao", "SMSA", "Falta de medicamento de uso contínuo na farmácia do centro de saúde."],
   ["Marcos Modelo Teixeira", "Gameleira", "Mobilidade e trânsito", "RECLAMACAO", "MEDIA", "NOVA", 5, "assessor2", null, "Ônibus da linha do bairro atrasando com frequência no horário de pico."],
   ["Natália Exemplo Pinto", "Savassi", "Limpeza urbana", "SOLICITACAO", "BAIXA", "NOVA", null, null, null, "Instalação de lixeiras na praça."],
   ["Otávio Teste Moreira", "Jaqueline", "Infraestrutura e obras", "SOLICITACAO", "URGENTE", "EM_ANALISE", -1, "assessor", null, "Boca de lobo entupida, alagamento em dias de chuva."],
-  ["Paula Fictícia Araújo", "Lindéia", "Educação", "PEDIDO_INFORMACAO", "MEDIA", "RESOLVIDA", -8, "assessor", "SMED", "Informação sobre transporte escolar para aluno com deficiência."],
+  ["Paula Fictícia Araújo", "Lindeia", "Educação", "PEDIDO_INFORMACAO", "MEDIA", "RESOLVIDA", -8, "assessor", "SMED", "Informação sobre transporte escolar para aluno com deficiência."],
   ["Roberto Amostra Cardoso", "Sagrada Família", "Saneamento", "RECLAMACAO", "MEDIA", "ENCAMINHADA", 12, "coordenacao", "COPASA", "Falta de água recorrente nos fins de semana."],
 ];
 
 async function seedDemandas(usuarios: Map<string, string>) {
-  const regionais = await db.regional.findMany();
-  for (const r of regionais) {
-    for (const nome of BAIRROS[r.codigo] ?? []) {
-      const [latitude, longitude] = COORD_BAIRRO[nome] ?? [null, null];
-      await db.bairro.upsert({ where: { nome_regionalId: { nome, regionalId: r.id } }, update: { latitude, longitude }, create: { nome, regionalId: r.id, latitude, longitude } });
-    }
-  }
-  for (const nome of TEMAS) await db.tema.upsert({ where: { nome }, update: {}, create: { nome } });
-  for (const o of ORGAOS) await db.orgao.upsert({ where: { nome: o.nome }, update: {}, create: o });
-
   if ((await db.demanda.count()) > 0) return 0;
   const bairros = new Map((await db.bairro.findMany()).map((b) => [b.nome, b.id]));
   const temas = new Map((await db.tema.findMany()).map((t) => [t.nome, t.id]));
@@ -398,9 +326,7 @@ async function main() {
   if (process.env.NODE_ENV === "production" && process.env.PERMITIR_SEED !== "1") {
     throw new Error("Seed bloqueado em produção (defina PERMITIR_SEED=1 só em homologação).");
   }
-  for (const [codigo, nome] of REGIONAIS) {
-    await db.regional.upsert({ where: { codigo }, update: { nome }, create: { codigo, nome } });
-  }
+  await semearCadastrosBase(db);
   const senha = process.env.SEED_SENHA;
   if (!senha) throw new Error("Defina SEED_SENHA no .env");
   const senhaHash = await hashSenha(senha);
