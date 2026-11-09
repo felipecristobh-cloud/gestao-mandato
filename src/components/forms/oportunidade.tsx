@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, type ReactNode } from "react";
+import { startTransition, useActionState, useState, type ReactNode } from "react";
 import { Aviso, Botao, Campo, Rotulo, Selecao } from "@/components/ui";
 import {
   AVISO_JURIDICO, CRITERIOS, PRIORIDADES_OPORTUNIDADE, ROTULO_PRIORIDADE_OPORTUNIDADE, calcularNotaFinal, classificarNota, type Notas,
@@ -124,8 +124,16 @@ export function FormAvaliacao({ acao, valores }: { acao: Acao; valores: Notas })
   const [estado, enviar, enviando] = useActionState(acao, undefined);
   const [notas, setNotas] = useState<Notas>(valores);
   const final = calcularNotaFinal(notas);
+  // Envio manual: com <form action>, o React reseta o formulário e os selects controlados mostrariam a nota antiga.
   return (
-    <form action={enviar} className="space-y-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const dados = new FormData(e.currentTarget);
+        startTransition(() => enviar(dados));
+      }}
+      className="space-y-4"
+    >
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
       {estado?.ok && <Aviso tipo="ok">{estado.ok}</Aviso>}
       <div className="grid gap-3 sm:grid-cols-2">
