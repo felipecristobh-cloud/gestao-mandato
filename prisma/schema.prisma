@@ -75,6 +75,8 @@ model Usuario {
   historicoOportunidades   OportunidadeHistorico[]
   textosOportunidade       OportunidadeTexto[]
   vinculosOportunidade     OportunidadeVinculo[]
+  proposicoesCriadas       Proposicao[]
+  historicoProposicoes     ProposicaoHistorico[]
 
   @@map("usuario")
 }
@@ -875,6 +877,7 @@ model EixoLegislativo {
   ativo Boolean @default(true)
 
   oportunidades Oportunidade[]
+  proposicoes   Proposicao[]
 
   @@map("eixo_legislativo")
 }
@@ -1035,4 +1038,94 @@ model OportunidadeVinculo {
   @@index([emendaId])
   @@index([compromissoId])
   @@map("oportunidade_vinculo")
+}
+
+// ---------- Histórico legislativo (proposições de Pedro Patrus) ----------
+
+enum TipoProposicao {
+  PROJETO_LEI
+  PROJETO_RESOLUCAO
+  REQUERIMENTO
+  INDICACAO
+  PEDIDO_INFORMACAO
+  EMENDA_PROJETO
+  EMENDA_ORCAMENTARIA
+  OUTRA
+}
+
+/// Autoria ≠ coautoria ≠ emenda ≠ mera participação em discussão.
+enum ParticipacaoProposicao {
+  AUTORIA
+  COAUTORIA
+  EMENDA
+  DISCUSSAO
+}
+
+enum VerificacaoProposicao {
+  CONFIRMADO
+  AGUARDANDO
+  INCOMPLETO
+  CORRIGIDO
+}
+
+enum TipoHistoricoProposicao {
+  CRIACAO
+  EDICAO
+  VERIFICACAO
+  IMPORTACAO
+}
+
+/// Registro histórico: só com fonte identificada. Única por tipo + número + ano.
+model Proposicao {
+  id               String                 @id @default(uuid()) @db.Uuid
+  tipo             TipoProposicao
+  numero           Int
+  ano              Int                    @db.SmallInt
+  ementa           String
+  descricao        String?
+  justificativa    String?
+  participacao     ParticipacaoProposicao
+  parlamentares    String?
+  dataApresentacao DateTime?              @map("data_apresentacao") @db.Date
+  comissoes        String?
+  pareceres        String?
+  situacao         String?
+  resultadoVotacao String?                @map("resultado_votacao")
+  lei              String?
+  dataConclusao    DateTime?              @map("data_conclusao") @db.Date
+  linkOficial      String?                @map("link_oficial")
+  observacoes      String?
+  fonte            String
+  verificacao      VerificacaoProposicao  @default(AGUARDANDO)
+  eixoId           Int?                   @map("eixo_id")
+  /// Reservado para a futura integração com o portal da CMBH (identificador da proposição lá).
+  codigoExterno    String?                @unique @map("codigo_externo")
+  criadoPorId      String?                @map("criado_por_id") @db.Uuid
+  criadoEm         DateTime               @default(now()) @map("criado_em")
+  atualizadoEm     DateTime               @updatedAt @map("atualizado_em")
+
+  eixo      EixoLegislativo?      @relation(fields: [eixoId], references: [id])
+  criadoPor Usuario?              @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+  historico ProposicaoHistorico[]
+
+  @@unique([tipo, numero, ano])
+  @@index([ano])
+  @@index([eixoId])
+  @@index([verificacao])
+  @@map("proposicao")
+}
+
+model ProposicaoHistorico {
+  id           String                  @id @default(uuid()) @db.Uuid
+  proposicaoId String                  @map("proposicao_id") @db.Uuid
+  usuarioId    String?                 @map("usuario_id") @db.Uuid
+  data         DateTime                @default(now())
+  tipo         TipoHistoricoProposicao
+  descricao    String
+
+  proposicao Proposicao @relation(fields: [proposicaoId], references: [id], onDelete: Cascade)
+  usuario    Usuario?   @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([proposicaoId, data])
+  @@map("proposicao_historico")
 }

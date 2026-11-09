@@ -19,6 +19,14 @@ O gabinete quer guardar ideias de projetos, avaliar o impacto e decidir o que pr
 - Vínculos: `oportunidade_vinculo` liga a proposta a exatamente um destes registros: demanda, emenda ou compromisso (CHECK). A demanda é buscada pelo protocolo. As páginas de demanda, emenda e agenda mostram as propostas ligadas.
 - "Transformar demanda em proposta legislativa" abre `/oportunidades/nova?demanda=<id>` já preenchido com tema, descrição, bairro e regional. Nome e contato do cidadão não são copiados. A demanda não é alterada, e `oportunidade.demanda_origem_id` marca a origem, que não pode ser desvinculada. O mesmo atalho existe a partir de um compromisso da agenda, como uma audiência pública.
 
+## Etapa 3: histórico legislativo e importação
+- As tabelas `proposicao` e `proposicao_historico` têm RLS. Tipo + número + ano é único (`@@unique`). Um CHECK no banco garante ano entre 2013 e 2028 (os 4 mandatos confirmados pelo gabinete: 2013–2016, 2017–2020, 2021–2024 e 2025–2028, em `MANDATOS_PEDRO`) e número positivo.
+- `fonte` é obrigatória. `verificacao` usa os 4 estados (confirmado, aguardando, incompleto, corrigido) e começa em "aguardando". Marcar como "confirmado" exige o link oficial.
+- `participacao` separa autoria, coautoria, participação em emenda e participação em discussão. O tema é o mesmo `eixo_legislativo` das oportunidades.
+- Edição: quem cadastrou ou quem edita tudo. Toda alteração fica em `proposicao_historico` e no `audit_log`. Não existe exclusão.
+- Importação (`/oportunidades/historico/importar`) de CSV (`;`, `,` ou tab, UTF-8) ou XLSX (ExcelJS), com até 2 MB e 2000 linhas. `conferirImportacao` valida cada linha sem gravar nada. Ela aponta erros, duplicadas (no banco e dentro da própria planilha) e campos recomendados vazios. A pessoa corrige as células na tela e confere de novo. `importarProposicoes` confere de novo no servidor e grava só as linhas prontas, numa única transação.
+- CMBH: o portal não tem API pública documentada e não há coleta automática (respeito às condições de acesso). `src/server/proposicoes/cmbh.ts` define a interface `FonteOficialProposicoes`, e `codigo_externo` fica reservado para quando houver uma API oficial. Os dados dessa API passariam pela mesma conferência.
+- Nenhuma proposição é criada pelo sistema: o histórico começa vazio e é preenchido pela equipe, com fonte.
+
 ## Próximas etapas
-3. Histórico legislativo (2013–2016, 2017–2020, 2021–2024 e 2025–2028) com fonte e verificação, e importação CSV/Excel.
 4. Painel e relatórios.
