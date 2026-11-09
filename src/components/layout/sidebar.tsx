@@ -5,12 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  Building2, CalendarDays, FileBarChart, FileText, Inbox, Landmark, LayoutDashboard, Map, Menu, Settings, UserCog, Users, X,
+  Building2, CalendarDays, FileBarChart, FileText, Inbox, Landmark, LayoutDashboard, Lightbulb, Map, Menu, Settings, UserCog, Users, X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { ItemMenu } from "./menu";
 
-const ICONES = { Building2, CalendarDays, FileBarChart, FileText, Inbox, Landmark, LayoutDashboard, Map, Settings, UserCog, Users };
+const ICONES = { Building2, CalendarDays, FileBarChart, FileText, Inbox, Landmark, LayoutDashboard, Lightbulb, Map, Settings, UserCog, Users };
 
 export function Sidebar({ itens, rodape }: { itens: ItemMenu[]; rodape: React.ReactNode }) {
   const caminho = usePathname();

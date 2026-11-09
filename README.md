@@ -133,6 +133,10 @@ docs/adr/             decisões de arquitetura
 - CSP com nonce por requisição (`src/middleware.ts`), sem script externo, sem iframe.
 - Auditoria guarda telefone e e-mail mascarados. Admin anonimiza solicitante (LGPD) pela página da demanda.
 
+## Oportunidades Legislativas
+
+Banco de ideias de projetos com eixo temático, bairros e regionais, avaliação de 0 a 5 em 5 critérios com pesos e nota final de 0 a 100 com faixa de prioridade. A prioridade manual exige justificativa e fica no histórico. Ver [ADR 0012](docs/adr/0012-oportunidades-legislativas.md).
+
 ## Documentos (Fase 9)
 
 - Anexos em demandas, emendas e entidades (ou avulsos em `/documentos`): PDF, imagens, Word, Excel, ODT/ODS, até 10 MB, tipo real conferido.

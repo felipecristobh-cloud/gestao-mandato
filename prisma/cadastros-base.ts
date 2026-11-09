@@ -1,7 +1,7 @@
 import type { Esfera, PrismaClient } from "@prisma/client";
 import bairrosBH from "./dados/bairros-bh.json";
 
-// Cadastros de referência (regionais, bairros, temas e órgãos). Idempotente: só cria o que falta e não
+// Cadastros de referência (regionais, bairros, temas, órgãos e eixos legislativos). Idempotente: só cria o que falta e não
 // altera registros existentes. Roda no build da Vercel e no seed.
 
 export const REGIONAIS = [
@@ -15,6 +15,13 @@ export const BAIRROS = bairrosBH as unknown as Record<string, [nome: string, lat
 export const TEMAS = [
   "Assistência social", "Cultura", "Educação", "Esporte e lazer", "Habitação", "Iluminação pública", "Infraestrutura e obras",
   "Limpeza urbana", "Meio ambiente", "Mobilidade e trânsito", "Saneamento", "Saúde", "Segurança", "Outros",
+];
+
+export const EIXOS_LEGISLATIVOS = [
+  "Assistência social", "Saúde pública", "Educação", "Segurança alimentar", "Moradia e habitação", "Direitos humanos", "Mulheres",
+  "Juventude", "População LGBTQIAPN+", "Igualdade racial", "População em situação de rua", "Trabalho e geração de renda",
+  "Economia popular solidária", "Catadores e reciclagem", "Cultura", "Esporte e lazer", "Meio ambiente", "Mobilidade e acessibilidade",
+  "Direitos da pessoa idosa", "Direitos das pessoas com deficiência", "Participação popular", "Outros",
 ];
 
 export const ORGAOS: { nome: string; sigla: string; esfera: Esfera }[] = [
@@ -47,5 +54,6 @@ export async function semearCadastrosBase(db: PrismaClient) {
   });
   const temas = await db.tema.createMany({ data: TEMAS.map((nome) => ({ nome })), skipDuplicates: true });
   const orgaos = await db.orgao.createMany({ data: ORGAOS, skipDuplicates: true });
-  return { regionais: regionais.count, bairros: bairros.count, temas: temas.count, orgaos: orgaos.count };
+  const eixos = await db.eixoLegislativo.createMany({ data: EIXOS_LEGISLATIVOS.map((nome) => ({ nome })), skipDuplicates: true });
+  return { regionais: regionais.count, bairros: bairros.count, temas: temas.count, orgaos: orgaos.count, eixos: eixos.count };
 }
