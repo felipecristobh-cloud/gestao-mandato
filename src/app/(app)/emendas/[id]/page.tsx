@@ -19,6 +19,7 @@ import {
 import { ROTULO_CARGO, ROTULO_ESFERA, ROTULO_PARTICIPACAO } from "@/lib/parlamentares";
 import { carregarEmenda } from "../carregar";
 import { CartaoDocumentos } from "@/components/documentos/cartao";
+import { CartaoOportunidades } from "@/components/oportunidades/ligadas";
 
 export const metadata: Metadata = { title: "Emenda" };
 
@@ -210,6 +211,7 @@ export default async function EmendaPage({ params, searchParams }: { params: Pro
 
         <div className="space-y-6">
           <CartaoDocumentos ator={ator} tipo="emenda" id={e.id} podeAnexar={e.podeEditar} />
+          <CartaoOportunidades ator={ator} alvo={{ emendaId: e.id }} />
           {e.podeEditar && (
             <Cartao>
               <h2 className="mb-3 text-base font-semibold">Status</h2>

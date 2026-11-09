@@ -135,7 +135,7 @@ docs/adr/             decisões de arquitetura
 
 ## Oportunidades Legislativas
 
-Banco de ideias de projetos com eixo temático, bairros e regionais, avaliação de 0 a 5 em 5 critérios com pesos e nota final de 0 a 100 com faixa de prioridade. A prioridade manual exige justificativa e fica no histórico. Ver [ADR 0012](docs/adr/0012-oportunidades-legislativas.md).
+Banco de ideias de projetos com eixo temático, bairros e regionais, avaliação de 0 a 5 em 5 critérios com pesos e nota final de 0 a 100 com faixa de prioridade. A prioridade manual exige justificativa e fica no histórico. Cada proposta passa pelas 14 etapas de desenvolvimento e tem textos com histórico de versões, anexos e vínculos com demandas, emendas e agenda. O botão "Transformar demanda em proposta legislativa" fica na página da demanda. Ver [ADR 0012](docs/adr/0012-oportunidades-legislativas.md).
 
 ## Documentos (Fase 9)
 

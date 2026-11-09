@@ -1,6 +1,6 @@
 import type { CategoriaDocumento } from "@prisma/client";
 
-export const CATEGORIAS_DOCUMENTO = ["OFICIO", "PROTOCOLO", "NOTA", "COMPROVANTE", "FOTO", "PLANO_TRABALHO", "TERMO", "OUTRO"] as const satisfies readonly CategoriaDocumento[];
+export const CATEGORIAS_DOCUMENTO = ["OFICIO", "PROTOCOLO", "NOTA", "COMPROVANTE", "FOTO", "PLANO_TRABALHO", "TERMO", "ESTUDO", "MINUTA", "OUTRO"] as const satisfies readonly CategoriaDocumento[];
 
 export const ROTULO_CATEGORIA: Record<CategoriaDocumento, string> = {
   OFICIO: "Ofício",
@@ -10,6 +10,8 @@ export const ROTULO_CATEGORIA: Record<CategoriaDocumento, string> = {
   FOTO: "Foto",
   PLANO_TRABALHO: "Plano de trabalho",
   TERMO: "Termo / convênio",
+  ESTUDO: "Estudo / pesquisa",
+  MINUTA: "Minuta legislativa",
   OUTRO: "Outro",
 };
 

@@ -48,6 +48,7 @@ export default async function DocumentosPage({ searchParams }: { searchParams: P
               <option value="demanda">Demandas</option>
               <option value="emenda">Emendas</option>
               <option value="entidade">Entidades</option>
+              <option value="oportunidade">Oportunidades legislativas</option>
               <option value="avulso">Avulsos</option>
             </Selecao>
           </div>

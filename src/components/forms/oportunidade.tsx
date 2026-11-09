@@ -44,7 +44,9 @@ function Texto({ nome, rotulo, v, obrigatorio, linhas, dica }: { nome: string; r
 
 const lista = (s?: string) => new Set((s ?? "").split(",").filter(Boolean));
 
-export function FormOportunidade({ acao, opcoes, valores: iniciais, edicao }: { acao: Acao; opcoes: OpcoesFormOportunidade; valores?: Valores; edicao?: boolean }) {
+export function FormOportunidade({ acao, opcoes, valores: iniciais, edicao, origem }: {
+  acao: Acao; opcoes: OpcoesFormOportunidade; valores?: Valores; edicao?: boolean; origem?: { campo: "origemDemanda" | "origemCompromisso"; id: string };
+}) {
   const [estado, enviar, enviando] = useActionState(acao, undefined);
   const v: Valores = { ...iniciais, ...(estado?.valores ?? {}) };
   const regionais = lista(v.regionalIds);
@@ -52,6 +54,7 @@ export function FormOportunidade({ acao, opcoes, valores: iniciais, edicao }: { 
   return (
     <form action={enviar} className="space-y-5">
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
+      {origem && <input type="hidden" name={origem.campo} value={origem.id} />}
       <div key={estado?.n ?? 0} className="space-y-5">
         <Grupo titulo="A proposta">
           <div className="sm:col-span-2">
@@ -206,6 +209,83 @@ export function BotaoAlternarEixo({ acao, ativo }: { acao: Acao; ativo: boolean 
     <form action={enviar} className="inline">
       <button type="submit" disabled={enviando} className="text-sm text-marca-800 hover:underline disabled:opacity-60">{ativo ? "Inativar" : "Reativar"}</button>
       {estado?.erro && <span role="alert" className="ml-2 text-xs text-red-700">{estado.erro}</span>}
+    </form>
+  );
+}
+
+export function FormEtapa({ acao, atual, etapas, rotulos }: { acao: Acao; atual: string; etapas: { valor: string; bloqueada: boolean }[]; rotulos: Record<string, string> }) {
+  const [estado, enviar, enviando] = useActionState(acao, undefined);
+  return (
+    <form action={enviar} className="space-y-3">
+      {estado?.erro && <Aviso>{estado.erro}</Aviso>}
+      {estado?.ok && <Aviso tipo="ok">{estado.ok}</Aviso>}
+      <div key={estado?.n ?? 0} className="space-y-3">
+        <div>
+          <Rotulo htmlFor="etapa">Mover para</Rotulo>
+          <Selecao id="etapa" name="etapa" defaultValue={atual} required>
+            {etapas.map((e, i) => <option key={e.valor} value={e.valor} disabled={e.bloqueada}>{i + 1}. {rotulos[e.valor]}{e.bloqueada ? " (coordenação)" : ""}</option>)}
+          </Selecao>
+        </div>
+        <div>
+          <Rotulo htmlFor="observacao">Observação</Rotulo>
+          <Area id="observacao" name="observacao" rows={2} maxLength={1000} />
+        </div>
+      </div>
+      <div className="flex justify-end"><Botao type="submit" variante="secundario" disabled={enviando}>Mudar etapa</Botao></div>
+    </form>
+  );
+}
+
+export function FormTexto({ acao, tipo, atual }: { acao: Acao; tipo: string; atual: string }) {
+  const [estado, enviar, enviando] = useActionState(acao, undefined);
+  return (
+    <form action={enviar} className="space-y-2">
+      {estado?.erro && <Aviso>{estado.erro}</Aviso>}
+      {estado?.ok && <Aviso tipo="ok">{estado.ok}</Aviso>}
+      <Area key={estado?.n ?? 0} id={`texto-${tipo}`} name="conteudo" rows={10} defaultValue={estado?.valores?.conteudo ?? atual} required aria-label="Texto" />
+      <div className="flex justify-end"><Botao type="submit" disabled={enviando}>{enviando ? "Salvando…" : "Salvar nova versão"}</Botao></div>
+    </form>
+  );
+}
+
+export type OpcoesVinculoOportunidade = { emendas: { id: string; codigo: string; objeto: string }[]; compromissos: { id: string; titulo: string; inicio: Date }[] };
+
+export function FormVinculoOportunidade({ acao, opcoes }: { acao: Acao; opcoes: OpcoesVinculoOportunidade }) {
+  const [estado, enviar, enviando] = useActionState(acao, undefined);
+  const [tipo, setTipo] = useState("demanda");
+  return (
+    <form action={enviar} className="space-y-3">
+      {estado?.erro && <Aviso>{estado.erro}</Aviso>}
+      {estado?.ok && <Aviso tipo="ok">{estado.ok}</Aviso>}
+      <div key={estado?.n ?? 0} className="grid gap-3 sm:grid-cols-3">
+        <div>
+          <Rotulo htmlFor="v-tipo">Vincular a</Rotulo>
+          <Selecao id="v-tipo" name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+            <option value="demanda">Demanda</option>
+            <option value="emenda">Emenda</option>
+            <option value="compromisso">Agenda (audiência, reunião…)</option>
+          </Selecao>
+        </div>
+        <div className="sm:col-span-2">
+          <Rotulo htmlFor="v-ref">{tipo === "demanda" ? "Protocolo da demanda" : tipo === "emenda" ? "Emenda" : "Compromisso"}</Rotulo>
+          {tipo === "demanda" && <Campo id="v-ref" name="ref" required placeholder="DEM-2026-00001" />}
+          {tipo === "emenda" && (
+            <Selecao id="v-ref" name="ref" required defaultValue="">
+              <option value="">—</option>
+              {opcoes.emendas.map((e) => <option key={e.id} value={e.id}>{e.codigo} · {e.objeto.slice(0, 80)}</option>)}
+            </Selecao>
+          )}
+          {tipo === "compromisso" && (
+            <Selecao id="v-ref" name="ref" required defaultValue="">
+              <option value="">—</option>
+              {opcoes.compromissos.map((c) => (
+                <option key={c.id} value={c.id}>{new Date(c.inicio).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} · {c.titulo.slice(0, 80)}</option>
+              ))}
+            </Selecao>
+          )}
+        </div>
+      </div>
+      <div className="flex justify-end"><Botao type="submit" variante="secundario" disabled={enviando}>Vincular</Botao></div>
     </form>
   );
 }

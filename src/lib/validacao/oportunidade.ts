@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PRIORIDADES_OPORTUNIDADE } from "@/lib/oportunidades";
+import { ETAPAS_OPORTUNIDADE, PRIORIDADES_OPORTUNIDADE, TEXTOS_OPORTUNIDADE } from "@/lib/oportunidades";
 
 const obrigatorio = (msg: string, max = 4000) => z.string({ message: msg }).trim().min(3, msg).max(max, `Máximo de ${max} caracteres.`);
 const opcional = (max = 8000) => z.string().trim().max(max, `Máximo de ${max} caracteres.`).optional().nullable().transform((v) => v || null);
@@ -49,3 +49,18 @@ export const prioridadeManualSchema = z.object({
 });
 
 export const eixoSchema = z.object({ nome: z.string().trim().min(3, "Informe o nome do eixo.").max(80) });
+
+export const etapaSchema = z.object({
+  etapa: z.string({ message: "Escolha a etapa." }).refine((v) => (ETAPAS_OPORTUNIDADE as string[]).includes(v), "Etapa inválida."),
+  observacao: z.string().trim().max(1000).optional().nullable().transform((v) => v || null),
+});
+
+export const textoSchema = z.object({
+  tipo: z.string().refine((v) => TEXTOS_OPORTUNIDADE.some((t) => t.tipo === v), "Tipo de texto inválido."),
+  conteudo: z.string({ message: "Escreva o texto." }).trim().min(1, "Escreva o texto.").max(100_000, "Texto longo demais (máximo de 100 mil caracteres)."),
+});
+
+export const vinculoSchema = z.object({
+  tipo: z.enum(["demanda", "emenda", "compromisso"], { message: "Tipo de vínculo inválido." }),
+  ref: z.string({ message: "Escolha o registro." }).trim().min(1, "Escolha o registro.").max(60),
+});

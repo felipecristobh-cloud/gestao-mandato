@@ -16,6 +16,7 @@ import {
 } from "@/lib/demandas";
 import { carregarDemanda } from "./carregar";
 import { CartaoDocumentos } from "@/components/documentos/cartao";
+import { CartaoOportunidades } from "@/components/oportunidades/ligadas";
 import { FormAnonimizar } from "@/components/forms/lgpd";
 import { anonimizarPessoaAction } from "@/server/services/lgpd-actions";
 import { pode } from "@/server/authz";
@@ -168,6 +169,7 @@ export default async function DemandaPage({ params, searchParams }: { params: Pr
             )}
           </Cartao>
           <CartaoDocumentos ator={ator} tipo="demanda" id={d.id} podeAnexar={d.podeEditar} />
+          <CartaoOportunidades ator={ator} alvo={{ demandaId: d.id }} novaHref={`/oportunidades/nova?demanda=${d.id}`} rotuloNova="Transformar demanda em proposta legislativa" />
           {d.podeEditar && (
             <Cartao>
               <h2 className="mb-3 text-base font-semibold">Status</h2>

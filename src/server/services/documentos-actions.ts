@@ -7,7 +7,7 @@ import { AppError } from "@/server/errors";
 import type { EstadoForm } from "./parlamentares-actions";
 import { enviarDocumento, removerDocumento, vinculoDe, type Vinculo } from "./documentos";
 
-const ROTA: Record<string, string> = { demanda: "/demandas", emenda: "/emendas", entidade: "/entidades" };
+const ROTA: Record<string, string> = { demanda: "/demandas", emenda: "/emendas", entidade: "/entidades", oportunidade: "/oportunidades" };
 
 function revalidar(v: Vinculo) {
   revalidatePath("/documentos");
@@ -37,7 +37,8 @@ export async function removerDocumentoAction(id: string, estado: EstadoForm): Pr
   const n = (estado?.n ?? 0) + 1;
   try {
     const r = await removerDocumento(prisma, ator, id, await metaRequisicao());
-    revalidar(r.demandaId ? { tipo: "demanda", id: r.demandaId } : r.emendaId ? { tipo: "emenda", id: r.emendaId } : r.entidadeId ? { tipo: "entidade", id: r.entidadeId } : null);
+    revalidar(r.demandaId ? { tipo: "demanda", id: r.demandaId } : r.emendaId ? { tipo: "emenda", id: r.emendaId } 
+      : r.entidadeId ? { tipo: "entidade", id: r.entidadeId } : r.oportunidadeId ? { tipo: "oportunidade", id: r.oportunidadeId } : null);
     return { ok: "Documento removido.", n };
   } catch (e) {
     if (e instanceof AppError) return { erro: e.message, n };
