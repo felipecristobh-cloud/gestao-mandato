@@ -99,3 +99,16 @@ export const TEXTOS_OPORTUNIDADE: { tipo: TipoTextoOportunidade; rotulo: string;
 ];
 
 export const ROTULO_TEXTO = Object.fromEntries(TEXTOS_OPORTUNIDADE.map((t) => [t.tipo, t.rotulo])) as Record<TipoTextoOportunidade, string>;
+
+// ---------- painel ----------
+
+/** Indicadores do painel: cada um soma as etapas indicadas. */
+export const INDICADORES_PAINEL: { chave: string; rotulo: string; etapas: EtapaOportunidade[] }[] = [
+  { chave: "analise", rotulo: "Ideias em análise", etapas: ["IDEIA", "ANALISE_POLITICA", "PESQUISA_JURIDICA"] },
+  { chave: "elaboracao", rotulo: "Projetos em elaboração", etapas: ["ELABORACAO", "REVISAO"] },
+  { chave: "vereador", rotulo: "Aguardando aprovação do vereador", etapas: ["AGUARDANDO_VEREADOR"] },
+  { chave: "protocolo", rotulo: "Prontos para protocolo", etapas: ["APROVADA_INTERNAMENTE", "PRONTA_PROTOCOLO"] },
+  { chave: "protocolados", rotulo: "Protocolados", etapas: ["PROTOCOLADA", "EM_TRAMITACAO"] },
+  { chave: "aprovados", rotulo: "Aprovados", etapas: ["APROVADA"] },
+  { chave: "lei", rotulo: "Transformados em lei", etapas: ["LEI"] },
+];

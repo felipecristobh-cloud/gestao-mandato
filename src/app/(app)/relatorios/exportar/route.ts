@@ -16,7 +16,7 @@ const MIME = {
   pdf: "application/pdf",
 } as const;
 
-const CAMPOS: (keyof FiltrosRelatorio)[] = ["de", "ate", "status", "regionalId", "temaId", "responsavel", "esfera", "ano", "pessoais"];
+const CAMPOS: (keyof FiltrosRelatorio)[] = ["de", "ate", "status", "regionalId", "temaId", "responsavel", "esfera", "ano", "pessoais", "eixoId", "etapa", "verificacao"];
 
 export async function GET(req: NextRequest) {
   const u = await usuarioAtual();

@@ -19,3 +19,13 @@
 - **Documentos:** anexe PDF, imagem, Word, Excel ou ODT. Marque "restrito" quando só Admin e Coordenação puderem abrir.
 
 **Cuidados (LGPD):** cadastre só o necessário, não escreva dados sensíveis em campos de texto livre, não exporte dados pessoais sem necessidade. Pedidos de exclusão de dados vão para o Admin, que anonimiza pela página da demanda.
+
+## Oportunidades Legislativas
+- **Nova oportunidade:** cadastre a ideia e depois avalie os 5 critérios de 0 a 5. A nota de 0 a 100 e a prioridade são calculadas sozinhas. Nota alta não é parecer jurídico.
+- **Prioridade na mão:** só a Coordenação muda, e sempre com justificativa. A mudança fica no histórico.
+- **Etapas:** mova a proposta pelas 14 etapas. Da "Aprovada internamente" em diante, e pra arquivar ou suspender, só a Coordenação. Nada é protocolado na Câmara pelo sistema.
+- **Textos:** cada vez que salva, vira uma versão nova. Clique em "Ver as versões" pra comparar com as anteriores.
+- **De uma demanda:** na página da demanda, clique em "Transformar demanda em proposta legislativa". A demanda não muda, e o nome e o contato do cidadão não são copiados.
+- **Histórico legislativo:** cadastre só com fonte. Pra marcar como "Confirmado em fonte oficial", informe o link da Câmara. Na importação de planilha, baixe o modelo, confira, corrija na tela e só então importe.
+- **Painel:** use os filtros de período, tema, responsável e etapa. Clique nos números e nas barras pra abrir a lista já filtrada.
+

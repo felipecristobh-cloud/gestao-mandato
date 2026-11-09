@@ -28,5 +28,17 @@ O gabinete quer guardar ideias de projetos, avaliar o impacto e decidir o que pr
 - CMBH: o portal não tem API pública documentada e não há coleta automática (respeito às condições de acesso). `src/server/proposicoes/cmbh.ts` define a interface `FonteOficialProposicoes`, e `codigo_externo` fica reservado para quando houver uma API oficial. Os dados dessa API passariam pela mesma conferência.
 - Nenhuma proposição é criada pelo sistema: o histórico começa vazio e é preenchido pela equipe, com fonte.
 
-## Próximas etapas
-4. Painel e relatórios.
+## Etapa 4: painel e relatórios
+- `/oportunidades/painel` (`painelOportunidades`) calcula os indicadores na hora, sem cache. Indicadores:
+  - total de propostas;
+  - uma contagem por grupo de etapas (`INDICADORES_PAINEL`: análise, elaboração, aguardando vereador, prontas para protocolo, protocoladas, aprovadas, lei);
+  - média da nota;
+  - propostas que surgiram de demandas;
+  - por eixo, por regional (a explícita ou a do bairro, sem contar duas vezes a mesma proposta) e por prioridade;
+  - histórico legislativo por mandato e por verificação.
+- Filtros do painel: período de cadastro, tema (eixo), responsável e etapa. Os gráficos usam os componentes do Dashboard (`Barras`, `Rosca`), e clicar abre a lista já filtrada.
+- Relatórios: o grupo "Oportunidades Legislativas" entra no módulo de Relatórios, com lista, por eixo, por regional, por etapa e histórico legislativo. As exportações (CSV, Excel com fórmulas e PDF) e a auditoria são as mesmas dos outros relatórios.
+- A nota média é sempre acompanhada do aviso de que nota alta não é parecer jurídico.
+
+## Fora do escopo por enquanto
+- Assistente de IA: precisa de um provedor externo e de chave de API, e os textos das propostas seriam enviados a esse provedor. Fica para decisão do gabinete.

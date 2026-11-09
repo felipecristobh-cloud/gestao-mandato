@@ -8,13 +8,16 @@ import { gerarRelatorio, type FiltrosRelatorio } from "@/server/services/relator
 import { Botao, CabecalhoPagina, Cartao, Campo, Rotulo, Selecao, classeBotao } from "@/components/ui";
 import { ROTULO_STATUS, STATUS } from "@/lib/demandas";
 import { ROTULO_STATUS_EMENDA, STATUS_EMENDA } from "@/lib/emendas";
+import { ETAPAS_OPORTUNIDADE, ROTULO_ETAPA } from "@/lib/oportunidades";
+import { ANO_MAX, ANO_MIN, ROTULO_VERIFICACAO, VERIFICACOES } from "@/lib/proposicoes";
+import { opcoesProposicao } from "@/server/services/proposicoes";
 import { FORMATOS, RELATORIOS, ehTipoRelatorio, formatarCelula, totais, valorCalculado, type TipoRelatorio } from "@/lib/relatorios";
 
 export const metadata: Metadata = { title: "Relatórios" };
 
 type Busca = Record<string, string | undefined>;
 const PREVIA = 100;
-const CAMPOS = ["de", "ate", "status", "regionalId", "temaId", "responsavel", "esfera", "ano", "pessoais"] as const;
+const CAMPOS = ["de", "ate", "status", "regionalId", "temaId", "responsavel", "esfera", "ano", "pessoais", "eixoId", "etapa", "verificacao"] as const;
 const LISTAS_PESSOAIS: TipoRelatorio[] = ["demandas-atrasadas", "demandas-resolvidas"];
 
 export default async function RelatoriosPage({ searchParams }: { searchParams: Promise<Busca> }) {
@@ -26,7 +29,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
   for (const k of CAMPOS) if (sp[k]) f[k] = sp[k];
   const podePessoais = pode(u, "relatorios:exportar_com_dados_pessoais") && LISTAS_PESSOAIS.includes(tipo);
 
-  const [r, opcoes, anos] = await Promise.all([gerarRelatorio(prisma, u, tipo, f), opcoesDemanda(prisma), anosEmendas(prisma)]);
+  const [r, opcoes, anos, eixos] = await Promise.all([gerarRelatorio(prisma, u, tipo, f), opcoesDemanda(prisma), anosEmendas(prisma), opcoesProposicao(prisma)]);
   const t = totais(r);
   const q = new URLSearchParams(Object.entries({ tipo, ...f }).filter(([, v]) => v) as [string, string][]);
   const link = (formato: string) => `/relatorios/exportar?${q}&formato=${formato}`;
@@ -40,14 +43,60 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
           <div className="sm:col-span-2">
             <Rotulo htmlFor="tipo">Relatório</Rotulo>
             <Selecao id="tipo" name="tipo" defaultValue={tipo}>
-              {(["demandas", "emendas"] as const).map((g) => (
-                <optgroup key={g} label={g === "demandas" ? "Demandas" : "Emendas"}>
+              {(["demandas", "emendas", "oportunidades"] as const).map((g) => (
+                <optgroup key={g} label={{ demandas: "Demandas", emendas: "Emendas", oportunidades: "Oportunidades Legislativas" }[g]}>
                   {Object.entries(RELATORIOS).filter(([, d]) => d.grupo === g).map(([k, d]) => <option key={k} value={k}>{d.titulo}</option>)}
                 </optgroup>
               ))}
             </Selecao>
           </div>
-          {grupo === "demandas" ? (
+          {grupo === "oportunidades" ? (
+            <>
+              {tipo === "proposicoes-lista" ? (
+                <>
+                  <div>
+                    <Rotulo htmlFor="ano">Ano</Rotulo>
+                    <Selecao id="ano" name="ano" defaultValue={f.ano ?? ""}>
+                      <option value="">Todos</option>
+                      {Array.from({ length: ANO_MAX - ANO_MIN + 1 }, (_, i) => ANO_MAX - i).map((a) => <option key={a} value={a}>{a}</option>)}
+                    </Selecao>
+                  </div>
+                  <div>
+                    <Rotulo htmlFor="verificacao">Verificação</Rotulo>
+                    <Selecao id="verificacao" name="verificacao" defaultValue={f.verificacao ?? ""}>
+                      <option value="">Todas</option>
+                      {VERIFICACOES.map((v) => <option key={v} value={v}>{ROTULO_VERIFICACAO[v]}</option>)}
+                    </Selecao>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Rotulo htmlFor="de">Cadastradas de</Rotulo>
+                    <Campo id="de" name="de" type="date" defaultValue={f.de} />
+                  </div>
+                  <div>
+                    <Rotulo htmlFor="ate">até</Rotulo>
+                    <Campo id="ate" name="ate" type="date" defaultValue={f.ate} />
+                  </div>
+                  <div>
+                    <Rotulo htmlFor="etapa">Etapa</Rotulo>
+                    <Selecao id="etapa" name="etapa" defaultValue={f.etapa ?? ""}>
+                      <option value="">Todas</option>
+                      {ETAPAS_OPORTUNIDADE.map((e) => <option key={e} value={e}>{ROTULO_ETAPA[e]}</option>)}
+                    </Selecao>
+                  </div>
+                </>
+              )}
+              <div>
+                <Rotulo htmlFor="eixoId">Eixo temático</Rotulo>
+                <Selecao id="eixoId" name="eixoId" defaultValue={f.eixoId ?? ""}>
+                  <option value="">Todos</option>
+                  {eixos.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+                </Selecao>
+              </div>
+            </>
+          ) : grupo === "demandas" ? (
             <>
               <div>
                 <Rotulo htmlFor="de">{tipo === "demandas-resolvidas" ? "Concluídas de" : "Entrada de"}</Rotulo>
