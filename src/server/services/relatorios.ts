@@ -6,7 +6,10 @@ import { validacao } from "@/server/errors";
 import { ROTULO_STATUS, STATUS_ABERTOS, STATUS_FINAIS, hojeISO } from "@/lib/demandas";
 import { ROTULO_STATUS_EMENDA } from "@/lib/emendas";
 import { ROTULO_CARGO, ROTULO_ESFERA, ROTULO_PARTICIPACAO } from "@/lib/parlamentares";
-import { RELATORIOS, dataBR, type Coluna, type Formato, type Linha, type Relatorio, type TipoRelatorio } from "@/lib/relatorios";
+import { RELATORIOS, dataBR, type Coluna, type Formato, type GrupoRelatorio, type Linha, type Relatorio, type TipoRelatorio } from "@/lib/relatorios";
+import { ROTULO_ETAPA } from "@/lib/oportunidades";
+import { ROTULO_VERIFICACAO } from "@/lib/proposicoes";
+import { relatorioOportunidades } from "@/server/relatorios/oportunidades";
 
 export type FiltrosRelatorio = {
   de?: string;
@@ -18,6 +21,9 @@ export type FiltrosRelatorio = {
   esfera?: string;
   ano?: string;
   pessoais?: string; // "1" = incluir solicitante (só Admin/Coordenação)
+  eixoId?: string;
+  etapa?: string;
+  verificacao?: string;
 };
 
 const LIMITE_LINHAS = 10_000;
@@ -56,16 +62,25 @@ function whereEmendas(ator: Ator, f: FiltrosRelatorio) {
   return w;
 }
 
-async function descreverFiltros(db: Db, ator: Ator, f: FiltrosRelatorio, grupo: "demandas" | "emendas", campoData: string) {
+async function descreverFiltros(db: Db, ator: Ator, f: FiltrosRelatorio, grupo: GrupoRelatorio, campoData: string) {
   const out: string[] = [];
-  const [regional, tema, resp] = await Promise.all([
+  const [regional, tema, resp, eixo] = await Promise.all([
     grupo === "demandas" && f.regionalId && NUM.test(f.regionalId) ? db.regional.findUnique({ where: { id: Number(f.regionalId) }, select: { nome: true } }) : null,
     grupo === "demandas" && f.temaId && NUM.test(f.temaId) ? db.tema.findUnique({ where: { id: Number(f.temaId) }, select: { nome: true } }) : null,
     f.responsavel === "eu" || (f.responsavel && UUID.test(f.responsavel))
       ? db.usuario.findUnique({ where: { id: f.responsavel === "eu" ? ator.id : f.responsavel }, select: { nome: true } })
       : null,
+    grupo === "oportunidades" && f.eixoId && NUM.test(f.eixoId) ? db.eixoLegislativo.findUnique({ where: { id: Number(f.eixoId) }, select: { nome: true } }) : null,
   ]);
-  if (grupo === "demandas") {
+  if (grupo === "oportunidades") {
+    const de = f.de && ISO.test(f.de) ? dataBR(f.de) : null;
+    const ate = f.ate && ISO.test(f.ate) ? dataBR(f.ate) : null;
+    if (de || ate) out.push(`${campoData}: ${de ? `de ${de}` : ""}${de && ate ? " " : ""}${ate ? `até ${ate}` : ""}`);
+    if (eixo) out.push(`Eixo: ${eixo.nome}`);
+    if (tem(ROTULO_ETAPA, f.etapa)) out.push(`Etapa: ${ROTULO_ETAPA[f.etapa as keyof typeof ROTULO_ETAPA]}`);
+    if (f.ano && /^\d{4}$/.test(f.ano)) out.push(`Ano: ${f.ano}`);
+    if (tem(ROTULO_VERIFICACAO, f.verificacao)) out.push(`Verificação: ${ROTULO_VERIFICACAO[f.verificacao as keyof typeof ROTULO_VERIFICACAO]}`);
+  } else if (grupo === "demandas") {
     const de = f.de && ISO.test(f.de) ? dataBR(f.de) : null;
     const ate = f.ate && ISO.test(f.ate) ? dataBR(f.ate) : null;
     if (de || ate) out.push(`${campoData}: ${de ? `de ${de}` : ""}${de && ate ? " " : ""}${ate ? `até ${ate}` : ""}`);
@@ -302,12 +317,13 @@ export async function gerarRelatorio(
   if (!def) throw validacao("Relatório inválido.");
   const pessoais = f.pessoais === "1" && pode(ator, "relatorios:exportar_com_dados_pessoais");
   let r: { colunas: Coluna[]; linhas: Linha[]; observacao?: string };
-  if (tipo in GRUPO_DEMANDA) r = await demandasAgrupadas(db, ator, tipo as keyof typeof GRUPO_DEMANDA, f, hoje);
+  if (def.grupo === "oportunidades") r = await relatorioOportunidades(db, ator, tipo as Parameters<typeof relatorioOportunidades>[2], f);
+  else if (tipo in GRUPO_DEMANDA) r = await demandasAgrupadas(db, ator, tipo as keyof typeof GRUPO_DEMANDA, f, hoje);
   else if (tipo === "demandas-atrasadas" || tipo === "demandas-resolvidas") r = await demandasLista(db, ator, tipo, f, hoje, pessoais);
   else if (tipo === "emendas-execucao" || tipo in CAMPO_VALOR) r = await emendasLista(db, ator, tipo, f);
   else r = await emendasAgrupadas(db, ator, tipo, f);
 
-  const filtros = await descreverFiltros(db, ator, f, def.grupo, tipo === "demandas-resolvidas" ? "Conclusão" : "Entrada");
+  const filtros = await descreverFiltros(db, ator, f, def.grupo, tipo === "demandas-resolvidas" ? "Conclusão" : def.grupo === "oportunidades" ? "Cadastro" : "Entrada");
   if (pessoais && (tipo === "demandas-atrasadas" || tipo === "demandas-resolvidas")) filtros.push("Inclui dados pessoais do solicitante (uso restrito)");
   const observacoes = [r.observacao, r.linhas.length >= LIMITE_LINHAS ? `Limitado às primeiras ${LIMITE_LINHAS} linhas.` : undefined].filter(Boolean);
   return {

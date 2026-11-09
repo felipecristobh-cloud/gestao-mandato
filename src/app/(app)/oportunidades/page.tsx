@@ -27,6 +27,7 @@ export default async function OportunidadesPage({ searchParams }: { searchParams
         descricao={`${lista.total} proposta${lista.total === 1 ? "" : "s"}${filtrando ? " com os filtros escolhidos" : ""} · ordenadas pela nota de impacto`}
         acoes={
           <>
+            <Link href="/oportunidades/painel" className={classeBotao("secundario")}>Painel</Link>
             <Link href="/oportunidades/historico" className={classeBotao("secundario")}>Histórico legislativo</Link>
             {pode(ator, "cadastros_base:gerenciar") && <Link href="/oportunidades/eixos" className={classeBotao("secundario")}>Eixos temáticos</Link>}
             {pode(ator, "dados:criar") && <Link href="/oportunidades/nova" className={classeBotao()}>+ Nova oportunidade</Link>}

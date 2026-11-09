@@ -23,7 +23,7 @@ export type Relatorio = {
   geradoPor: string;
 };
 
-export type GrupoRelatorio = "demandas" | "emendas";
+export type GrupoRelatorio = "demandas" | "emendas" | "oportunidades";
 
 export const RELATORIOS = {
   "demandas-regional": { grupo: "demandas", titulo: "Demandas por regional" },
@@ -43,6 +43,11 @@ export const RELATORIOS = {
   "emendas-empenhado": { grupo: "emendas", titulo: "Valores empenhados" },
   "emendas-liquidado": { grupo: "emendas", titulo: "Valores liquidados" },
   "emendas-pago": { grupo: "emendas", titulo: "Valores pagos" },
+  "oportunidades-lista": { grupo: "oportunidades", titulo: "Oportunidades legislativas (lista)" },
+  "oportunidades-eixo": { grupo: "oportunidades", titulo: "Oportunidades por eixo temático" },
+  "oportunidades-regional": { grupo: "oportunidades", titulo: "Oportunidades por regional" },
+  "oportunidades-etapa": { grupo: "oportunidades", titulo: "Oportunidades por etapa" },
+  "proposicoes-lista": { grupo: "oportunidades", titulo: "Histórico legislativo (proposições)" },
 } as const satisfies Record<string, { grupo: GrupoRelatorio; titulo: string }>;
 
 export type TipoRelatorio = keyof typeof RELATORIOS;
