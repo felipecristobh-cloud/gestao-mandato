@@ -73,6 +73,8 @@ model Usuario {
   oportunidadesResponsavel Oportunidade[]          @relation("OportunidadeResponsavel")
   oportunidadesCriadas     Oportunidade[]          @relation("OportunidadeCriadoPor")
   historicoOportunidades   OportunidadeHistorico[]
+  textosOportunidade       OportunidadeTexto[]
+  vinculosOportunidade     OportunidadeVinculo[]
 
   @@map("usuario")
 }
@@ -249,15 +251,17 @@ model Demanda {
   criadoEm      DateTime      @default(now()) @map("criado_em")
   atualizadoEm  DateTime      @updatedAt @map("atualizado_em")
 
-  pessoa          Pessoa             @relation(fields: [pessoaId], references: [id])
-  bairro          Bairro?            @relation(fields: [bairroId], references: [id])
-  tema            Tema               @relation(fields: [temaId], references: [id])
-  orgao           Orgao?             @relation(fields: [orgaoId], references: [id])
-  responsavel     Usuario?           @relation("DemandaResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  criadoPor       Usuario?           @relation("DemandaCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
-  historico       DemandaHistorico[]
-  encaminhamentos Encaminhamento[]
-  mandatos        DemandaMandato[]
+  pessoa               Pessoa                @relation(fields: [pessoaId], references: [id])
+  bairro               Bairro?               @relation(fields: [bairroId], references: [id])
+  tema                 Tema                  @relation(fields: [temaId], references: [id])
+  orgao                Orgao?                @relation(fields: [orgaoId], references: [id])
+  responsavel          Usuario?              @relation("DemandaResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  criadoPor            Usuario?              @relation("DemandaCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  historico            DemandaHistorico[]
+  oportunidadesOrigem  Oportunidade[]        @relation("OportunidadeDemandaOrigem")
+  oportunidadeVinculos OportunidadeVinculo[]
+  encaminhamentos      Encaminhamento[]
+  mandatos             DemandaMandato[]
 
   entidade     Entidade?            @relation(fields: [entidadeId], references: [id], onDelete: SetNull)
   compromissos CompromissoVinculo[]
@@ -515,14 +519,15 @@ model Emenda {
   criadoEm         DateTime     @default(now()) @map("criado_em")
   atualizadoEm     DateTime     @updatedAt @map("atualizado_em")
 
-  orgao       Orgao?             @relation(fields: [orgaoId], references: [id])
-  bairro      Bairro?            @relation(fields: [bairroId], references: [id])
-  responsavel Usuario?           @relation("EmendaResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  criadoPor   Usuario?           @relation("EmendaCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
-  historico   EmendaHistorico[]
-  lancamentos EmendaLancamento[]
-  mandatos    EmendaMandato[]
-  documentos  EmendaDocumento[]
+  orgao                Orgao?                @relation(fields: [orgaoId], references: [id])
+  bairro               Bairro?               @relation(fields: [bairroId], references: [id])
+  responsavel          Usuario?              @relation("EmendaResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  criadoPor            Usuario?              @relation("EmendaCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  historico            EmendaHistorico[]
+  lancamentos          EmendaLancamento[]
+  mandatos             EmendaMandato[]
+  documentos           EmendaDocumento[]
+  oportunidadeVinculos OportunidadeVinculo[]
 
   entidade     Entidade?            @relation(fields: [entidadeId], references: [id], onDelete: SetNull)
   compromissos CompromissoVinculo[]
@@ -721,12 +726,13 @@ model Compromisso {
   criadoEm        DateTime          @default(now()) @map("criado_em")
   atualizadoEm    DateTime          @updatedAt @map("atualizado_em")
 
-  bairro        Bairro?                   @relation(fields: [bairroId], references: [id])
-  responsavel   Usuario?                  @relation("CompromissoResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  criadoPor     Usuario?                  @relation("CompromissoCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
-  participantes CompromissoParticipante[]
-  vinculos      CompromissoVinculo[]
-  historico     CompromissoHistorico[]
+  bairro               Bairro?                   @relation(fields: [bairroId], references: [id])
+  responsavel          Usuario?                  @relation("CompromissoResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  criadoPor            Usuario?                  @relation("CompromissoCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  participantes        CompromissoParticipante[]
+  vinculos             CompromissoVinculo[]
+  historico            CompromissoHistorico[]
+  oportunidadeVinculos OportunidadeVinculo[]
 
   @@index([inicio])
   @@index([status])
@@ -806,34 +812,39 @@ enum CategoriaDocumento {
   FOTO
   PLANO_TRABALHO
   TERMO
+  ESTUDO
+  MINUTA
   OUTRO
 }
 
 /// Arquivo enviado (criptografado no storage). `caminho` é a chave no storage, nunca um caminho público.
 model Documento {
-  id         String             @id @default(uuid()) @db.Uuid
-  nome       String
-  categoria  CategoriaDocumento @default(OUTRO)
-  tipo       String
-  tamanho    Int
-  caminho    String             @unique
-  hash       String
-  descricao  String?
-  restrito   Boolean            @default(false)
-  demandaId  String?            @map("demanda_id") @db.Uuid
-  emendaId   String?            @map("emenda_id") @db.Uuid
-  entidadeId String?            @map("entidade_id") @db.Uuid
-  usuarioId  String?            @map("usuario_id") @db.Uuid
-  criadoEm   DateTime           @default(now()) @map("criado_em")
+  id             String             @id @default(uuid()) @db.Uuid
+  nome           String
+  categoria      CategoriaDocumento @default(OUTRO)
+  tipo           String
+  tamanho        Int
+  caminho        String             @unique
+  hash           String
+  descricao      String?
+  restrito       Boolean            @default(false)
+  demandaId      String?            @map("demanda_id") @db.Uuid
+  emendaId       String?            @map("emenda_id") @db.Uuid
+  entidadeId     String?            @map("entidade_id") @db.Uuid
+  usuarioId      String?            @map("usuario_id") @db.Uuid
+  oportunidadeId String?            @map("oportunidade_id") @db.Uuid
+  criadoEm       DateTime           @default(now()) @map("criado_em")
 
-  demanda  Demanda?  @relation(fields: [demandaId], references: [id], onDelete: Cascade)
-  emenda   Emenda?   @relation(fields: [emendaId], references: [id], onDelete: Cascade)
-  entidade Entidade? @relation(fields: [entidadeId], references: [id], onDelete: Cascade)
-  usuario  Usuario?  @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  oportunidade Oportunidade? @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+  demanda      Demanda?      @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  emenda       Emenda?       @relation(fields: [emendaId], references: [id], onDelete: Cascade)
+  entidade     Entidade?     @relation(fields: [entidadeId], references: [id], onDelete: Cascade)
+  usuario      Usuario?      @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
 
   @@index([demandaId])
   @@index([emendaId])
   @@index([entidadeId])
+  @@index([oportunidadeId])
   @@index([criadoEm])
   @@map("documento")
 }
@@ -852,6 +863,9 @@ enum TipoHistoricoOportunidade {
   EDICAO
   AVALIACAO
   PRIORIDADE
+  ETAPA
+  TEXTO
+  VINCULO
 }
 
 /// Eixo temático das oportunidades (separado dos temas de demanda).
@@ -889,18 +903,26 @@ model Oportunidade {
   notaFinal               Int?                    @map("nota_final") @db.SmallInt
   prioridadeManual        PrioridadeOportunidade? @map("prioridade_manual")
   justificativaPrioridade String?                 @map("justificativa_prioridade")
+  etapa                   EtapaOportunidade       @default(IDEIA)
+  demandaOrigemId         String?                 @map("demanda_origem_id") @db.Uuid
   criadoPorId             String?                 @map("criado_por_id") @db.Uuid
   criadoEm                DateTime                @default(now()) @map("criado_em")
   atualizadoEm            DateTime                @updatedAt @map("atualizado_em")
 
-  eixo        EixoLegislativo         @relation(fields: [eixoId], references: [id])
-  responsavel Usuario?                @relation("OportunidadeResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  criadoPor   Usuario?                @relation("OportunidadeCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
-  bairros     OportunidadeBairro[]
-  regionais   OportunidadeRegional[]
-  historico   OportunidadeHistorico[]
+  eixo          EixoLegislativo         @relation(fields: [eixoId], references: [id])
+  responsavel   Usuario?                @relation("OportunidadeResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  criadoPor     Usuario?                @relation("OportunidadeCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  bairros       OportunidadeBairro[]
+  regionais     OportunidadeRegional[]
+  historico     OportunidadeHistorico[]
+  demandaOrigem Demanda?                @relation("OportunidadeDemandaOrigem", fields: [demandaOrigemId], references: [id], onDelete: SetNull)
+  textos        OportunidadeTexto[]
+  vinculos      OportunidadeVinculo[]
+  arquivos      Documento[]
 
   @@index([eixoId])
+  @@index([etapa])
+  @@index([demandaOrigemId])
   @@index([notaFinal])
   @@index([criadoEm])
   @@map("oportunidade")
@@ -943,4 +965,74 @@ model OportunidadeHistorico {
 
   @@index([oportunidadeId, data])
   @@map("oportunidade_historico")
+}
+
+/// As 14 etapas internas do desenvolvimento. Só registro do gabinete: nada aqui protocola ou altera o sistema da Câmara.
+enum EtapaOportunidade {
+  IDEIA
+  ANALISE_POLITICA
+  PESQUISA_JURIDICA
+  ELABORACAO
+  REVISAO
+  AGUARDANDO_VEREADOR
+  APROVADA_INTERNAMENTE
+  PRONTA_PROTOCOLO
+  PROTOCOLADA
+  EM_TRAMITACAO
+  APROVADA
+  LEI
+  ARQUIVADA
+  SUSPENSA
+}
+
+enum TipoTextoOportunidade {
+  TEXTO_INICIAL
+  JUSTIFICATIVA
+  FUNDAMENTACAO_CONSTITUCIONAL
+  FUNDAMENTACAO_MUNICIPAL
+  PARECER_JURIDICO
+  SUGESTOES_EQUIPE
+  VERSAO_FINAL
+}
+
+/// Cada salvamento de um texto vira uma versão nova; nada é sobrescrito.
+model OportunidadeTexto {
+  id             String                @id @default(uuid()) @db.Uuid
+  oportunidadeId String                @map("oportunidade_id") @db.Uuid
+  tipo           TipoTextoOportunidade
+  versao         Int
+  conteudo       String
+  autorId        String?               @map("autor_id") @db.Uuid
+  criadoEm       DateTime              @default(now()) @map("criado_em")
+
+  oportunidade Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+  autor        Usuario?     @relation(fields: [autorId], references: [id], onDelete: SetNull)
+
+  @@unique([oportunidadeId, tipo, versao])
+  @@map("oportunidade_texto")
+}
+
+/// Liga a proposta a exatamente um registro de outro módulo (CHECK no banco).
+model OportunidadeVinculo {
+  id             String   @id @default(uuid()) @db.Uuid
+  oportunidadeId String   @map("oportunidade_id") @db.Uuid
+  demandaId      String?  @map("demanda_id") @db.Uuid
+  emendaId       String?  @map("emenda_id") @db.Uuid
+  compromissoId  String?  @map("compromisso_id") @db.Uuid
+  usuarioId      String?  @map("usuario_id") @db.Uuid
+  criadoEm       DateTime @default(now()) @map("criado_em")
+
+  oportunidade Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+  demanda      Demanda?     @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  emenda       Emenda?      @relation(fields: [emendaId], references: [id], onDelete: Cascade)
+  compromisso  Compromisso? @relation(fields: [compromissoId], references: [id], onDelete: Cascade)
+  usuario      Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@unique([oportunidadeId, demandaId])
+  @@unique([oportunidadeId, emendaId])
+  @@unique([oportunidadeId, compromissoId])
+  @@index([demandaId])
+  @@index([emendaId])
+  @@index([compromissoId])
+  @@map("oportunidade_vinculo")
 }

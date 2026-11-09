@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/server/db";
-import { exigirUsuario } from "@/server/auth/current";
+import { exigirUsuario, metaRequisicao } from "@/server/auth/current";
 import { AppError } from "@/server/errors";
-import { alternarEixo, atualizarOportunidade, avaliarOportunidade, criarEixo, criarOportunidade, definirPrioridadeManual } from "./oportunidades";
+import {
+  alterarEtapa, alternarEixo, atualizarOportunidade, avaliarOportunidade, criarEixo, criarOportunidade, definirPrioridadeManual, desvincularOportunidade,
+  salvarTexto, vincularOportunidade,
+} from "./oportunidades";
 import type { AvaliacaoEntrada, OportunidadeEntrada } from "@/lib/validacao/oportunidade";
 import type { Valores } from "./parlamentares-actions";
 
@@ -37,7 +40,10 @@ export async function criarOportunidadeAction(estado: EstadoOportunidade, form: 
   const ator = await exigirUsuario();
   const valores = valoresDoForm(form, CAMPOS, LISTAS);
   let id = "";
-  const erro = await tratar(async () => { id = (await criarOportunidade(prisma, ator, valores as unknown as OportunidadeEntrada)).id; });
+  const origem = { demandaId: String(form.get("origemDemanda") ?? "") || null, compromissoId: String(form.get("origemCompromisso") ?? "") || null };
+  const erro = await tratar(async () => {
+    id = (await criarOportunidade(prisma, ator, valores as unknown as OportunidadeEntrada, await metaRequisicao(), origem)).id;
+  });
   if (erro) return { erro, valores, n: (estado?.n ?? 0) + 1 };
   revalidatePath("/oportunidades");
   redirect(`/oportunidades/${id}?criada=1`);
@@ -78,4 +84,22 @@ export async function criarEixoAction(e: EstadoOportunidade, f: FormData) {
 
 export async function alternarEixoAction(id: number, e: EstadoOportunidade, f: FormData) {
   return simples("/oportunidades/eixos", "Eixo atualizado.", [], e, f, (a) => alternarEixo(prisma, a, id));
+}
+
+export async function etapaOportunidadeAction(id: string, e: EstadoOportunidade, f: FormData) {
+  return simples(`/oportunidades/${id}`, "Etapa atualizada.", ["etapa", "observacao"], e, f, async (a, v) => alterarEtapa(prisma, a, id, v, await metaRequisicao()));
+}
+
+export async function textoOportunidadeAction(id: string, tipo: string, e: EstadoOportunidade, f: FormData) {
+  return simples(`/oportunidades/${id}`, "Nova versão salva.", ["conteudo"], e, f, async (a, v) => salvarTexto(prisma, a, id, { tipo, conteudo: v.conteudo }, await metaRequisicao()));
+}
+
+export async function vincularOportunidadeAction(id: string, e: EstadoOportunidade, f: FormData) {
+  const r = await simples(`/oportunidades/${id}`, "Vínculo criado.", ["tipo", "ref"], e, f, async (a, v) => vincularOportunidade(prisma, a, id, v, await metaRequisicao()));
+  if (r?.ok) { revalidatePath("/demandas", "layout"); revalidatePath("/emendas", "layout"); revalidatePath("/agenda", "layout"); }
+  return r;
+}
+
+export async function desvincularOportunidadeAction(id: string, vinculoId: string, e: EstadoOportunidade, f: FormData) {
+  return simples(`/oportunidades/${id}`, "Vínculo removido.", [], e, f, async (a) => desvincularOportunidade(prisma, a, id, vinculoId, await metaRequisicao()));
 }

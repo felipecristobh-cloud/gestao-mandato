@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CartaoOportunidades } from "@/components/oportunidades/ligadas";
 import type { ReactNode } from "react";
 import { prisma } from "@/server/db";
 import { exigirPermissaoPagina } from "@/server/auth/current";
@@ -134,6 +135,7 @@ export default async function CompromissoPage({ params, searchParams }: { params
         </div>
 
         <div className="space-y-6">
+          <CartaoOportunidades ator={ator} alvo={{ compromissoId: c.id }} novaHref={`/oportunidades/nova?compromisso=${c.id}`} rotuloNova="Criar proposta a partir deste compromisso" />
           {c.podeEditar && (
             <Cartao>
               <h2 className="mb-3 text-base font-semibold">Status</h2>

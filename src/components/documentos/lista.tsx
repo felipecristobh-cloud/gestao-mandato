@@ -11,6 +11,7 @@ function Vinculo({ d }: { d: DocumentoExibido }) {
   if (d.demandaId && d.demanda) return <Link href={`/demandas/${d.demandaId}`} className="hover:underline">Demanda {d.demanda.protocolo}</Link>;
   if (d.emendaId && d.emenda) return <Link href={`/emendas/${d.emendaId}`} className="hover:underline">Emenda {d.emenda.numero}/{d.emenda.ano}</Link>;
   if (d.entidadeId && d.entidade) return <Link href={`/entidades/${d.entidadeId}`} className="hover:underline">{d.entidade.nome}</Link>;
+  if (d.oportunidadeId && d.oportunidade) return <Link href={`/oportunidades/${d.oportunidadeId}`} className="hover:underline">{d.oportunidade.nome}</Link>;
   return <>Avulso</>;
 }
 

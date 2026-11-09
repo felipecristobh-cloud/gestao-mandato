@@ -5,7 +5,9 @@ import { exigirPermissaoPagina } from "@/server/auth/current";
 import { pode } from "@/server/authz";
 import { listarOportunidades, opcoesFormOportunidade } from "@/server/services/oportunidades";
 import { CabecalhoPagina, Cartao, Campo, Rotulo, Selecao, Selo, classeBotao } from "@/components/ui";
-import { COR_PRIORIDADE_OPORTUNIDADE, PRIORIDADES_OPORTUNIDADE, ROTULO_PRIORIDADE_OPORTUNIDADE } from "@/lib/oportunidades";
+import {
+  COR_ETAPA, COR_PRIORIDADE_OPORTUNIDADE, ETAPAS_OPORTUNIDADE, PRIORIDADES_OPORTUNIDADE, ROTULO_ETAPA, ROTULO_PRIORIDADE_OPORTUNIDADE,
+} from "@/lib/oportunidades";
 
 export const metadata: Metadata = { title: "Oportunidades Legislativas" };
 
@@ -68,7 +70,21 @@ export default async function OportunidadesPage({ searchParams }: { searchParams
               {opcoes.usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
             </Selecao>
           </div>
-          <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-6 lg:justify-end">
+          <div className="sm:col-span-2">
+            <Rotulo htmlFor="f-etapa">Etapa</Rotulo>
+            <Selecao id="f-etapa" name="etapa" defaultValue={sp.etapa ?? ""}>
+              <option value="">Todas</option>
+              {ETAPAS_OPORTUNIDADE.map((e, i) => <option key={e} value={e}>{i + 1}. {ROTULO_ETAPA[e]}</option>)}
+            </Selecao>
+          </div>
+          <div>
+            <Rotulo htmlFor="f-origem">Origem</Rotulo>
+            <Selecao id="f-origem" name="origem" defaultValue={sp.origem ?? ""}>
+              <option value="">Todas</option>
+              <option value="demanda">Surgiu de demanda</option>
+            </Selecao>
+          </div>
+          <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-3 lg:justify-end">
             {filtrando && <Link href="/oportunidades" className={classeBotao("fantasma")}>Limpar filtros</Link>}
             <button type="submit" className={classeBotao()}>Filtrar</button>
           </div>
@@ -82,6 +98,7 @@ export default async function OportunidadesPage({ searchParams }: { searchParams
             <tr>
               <th scope="col" className="px-4 py-3">Proposta</th>
               <th scope="col" className="px-4 py-3">Eixo</th>
+              <th scope="col" className="px-4 py-3">Etapa</th>
               <th scope="col" className="px-4 py-3">Regionais</th>
               <th scope="col" className="px-4 py-3">Responsável</th>
               <th scope="col" className="px-4 py-3 text-right">Nota</th>
@@ -90,15 +107,17 @@ export default async function OportunidadesPage({ searchParams }: { searchParams
           </thead>
           <tbody className="divide-y divide-slate-100">
             {lista.itens.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Nenhuma oportunidade encontrada.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Nenhuma oportunidade encontrada.</td></tr>
             )}
             {lista.itens.map((o) => (
               <tr key={o.id} className="align-top hover:bg-slate-50">
                 <td className="px-4 py-3">
                   <Link href={`/oportunidades/${o.id}`} className="font-medium text-marca-800 hover:underline">{o.nome}</Link>
                   <p className="line-clamp-2 text-xs text-slate-500">{o.problema}</p>
+                  {o.demandaOrigemId && <p className="mt-1 text-xs text-slate-500">Surgiu de demanda</p>}
                 </td>
                 <td className="px-4 py-3 text-slate-700">{o.eixo.nome}</td>
+                <td className="px-4 py-3"><Selo cor={COR_ETAPA[o.etapa]}>{ROTULO_ETAPA[o.etapa]}</Selo></td>
                 <td className="px-4 py-3 text-slate-700">{o.regionais.map((r) => r.regional.nome).join(", ") || "—"}</td>
                 <td className="px-4 py-3 text-slate-700">{o.responsavel?.nome ?? "—"}</td>
                 <td className="px-4 py-3 text-right font-medium text-slate-900">{o.notaFinal ?? "—"}</td>

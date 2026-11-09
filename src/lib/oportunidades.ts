@@ -1,4 +1,4 @@
-import type { PrioridadeOportunidade } from "@prisma/client";
+import type { EtapaOportunidade, PrioridadeOportunidade, TipoTextoOportunidade } from "@prisma/client";
 
 export const CRITERIOS = [
   { campo: "notaImpacto", rotulo: "Impacto direto na vida da população", peso: 30 },
@@ -52,3 +52,50 @@ export const COR_PRIORIDADE_OPORTUNIDADE: Record<PrioridadeOportunidade, "vermel
 };
 
 export const AVISO_JURIDICO = "Nota alta não significa que o projeto seja constitucional: a análise jurídica é feita e validada separadamente.";
+
+// ---------- desenvolvimento ----------
+
+export const ETAPAS_OPORTUNIDADE: EtapaOportunidade[] = [
+  "IDEIA", "ANALISE_POLITICA", "PESQUISA_JURIDICA", "ELABORACAO", "REVISAO", "AGUARDANDO_VEREADOR", "APROVADA_INTERNAMENTE",
+  "PRONTA_PROTOCOLO", "PROTOCOLADA", "EM_TRAMITACAO", "APROVADA", "LEI", "ARQUIVADA", "SUSPENSA",
+];
+
+export const ROTULO_ETAPA: Record<EtapaOportunidade, string> = {
+  IDEIA: "Ideia cadastrada",
+  ANALISE_POLITICA: "Em análise política",
+  PESQUISA_JURIDICA: "Em pesquisa jurídica",
+  ELABORACAO: "Em elaboração",
+  REVISAO: "Em revisão",
+  AGUARDANDO_VEREADOR: "Aguardando validação do vereador",
+  APROVADA_INTERNAMENTE: "Aprovada internamente",
+  PRONTA_PROTOCOLO: "Pronta para protocolo",
+  PROTOCOLADA: "Protocolada",
+  EM_TRAMITACAO: "Em tramitação",
+  APROVADA: "Aprovada",
+  LEI: "Transformada em lei",
+  ARQUIVADA: "Arquivada",
+  SUSPENSA: "Suspensa",
+};
+
+export const COR_ETAPA: Record<EtapaOportunidade, "vermelho" | "amarelo" | "azul" | "cinza" | "verde"> = {
+  IDEIA: "cinza", ANALISE_POLITICA: "azul", PESQUISA_JURIDICA: "azul", ELABORACAO: "azul", REVISAO: "azul",
+  AGUARDANDO_VEREADOR: "amarelo", APROVADA_INTERNAMENTE: "verde", PRONTA_PROTOCOLO: "verde", PROTOCOLADA: "verde",
+  EM_TRAMITACAO: "amarelo", APROVADA: "verde", LEI: "verde", ARQUIVADA: "cinza", SUSPENSA: "vermelho",
+};
+
+/** Da validação do vereador em diante (e arquivar/suspender) só a coordenação move. */
+export const ETAPAS_COORDENACAO: ReadonlySet<EtapaOportunidade> = new Set([
+  "APROVADA_INTERNAMENTE", "PRONTA_PROTOCOLO", "PROTOCOLADA", "EM_TRAMITACAO", "APROVADA", "LEI", "ARQUIVADA", "SUSPENSA",
+]);
+
+export const TEXTOS_OPORTUNIDADE: { tipo: TipoTextoOportunidade; rotulo: string; coordenacao?: boolean }[] = [
+  { tipo: "TEXTO_INICIAL", rotulo: "Texto inicial do projeto" },
+  { tipo: "JUSTIFICATIVA", rotulo: "Justificativa legislativa" },
+  { tipo: "FUNDAMENTACAO_CONSTITUCIONAL", rotulo: "Fundamentação constitucional" },
+  { tipo: "FUNDAMENTACAO_MUNICIPAL", rotulo: "Fundamentação na legislação municipal" },
+  { tipo: "PARECER_JURIDICO", rotulo: "Parecer jurídico interno" },
+  { tipo: "SUGESTOES_EQUIPE", rotulo: "Sugestões da equipe" },
+  { tipo: "VERSAO_FINAL", rotulo: "Versão final aprovada", coordenacao: true },
+];
+
+export const ROTULO_TEXTO = Object.fromEntries(TEXTOS_OPORTUNIDADE.map((t) => [t.tipo, t.rotulo])) as Record<TipoTextoOportunidade, string>;

@@ -7,19 +7,22 @@ import { naoEncontrado, validacao } from "@/server/errors";
 import { novaChave, storagePadrao, type Storage } from "@/server/storage";
 import { CATEGORIAS_DOCUMENTO, TAMANHO_MAX, TIPOS_ACEITOS, conteudoConfere, extensao, formatarTamanho, nomeSeguro } from "@/lib/documentos";
 
-export type TipoVinculo = "demanda" | "emenda" | "entidade";
+export type TipoVinculo = "demanda" | "emenda" | "entidade" | "oportunidade";
 export type Vinculo = { tipo: TipoVinculo; id: string } | null;
 type Meta = { ip?: string };
 type ArquivoEnviado = { name: string; size: number; arrayBuffer(): Promise<ArrayBuffer> };
 
 const UUID = /^[0-9a-f-]{36}$/i;
-const COLUNA: Record<TipoVinculo, "demandaId" | "emendaId" | "entidadeId"> = { demanda: "demandaId", emenda: "emendaId", entidade: "entidadeId" };
+const COLUNA: Record<TipoVinculo, "demandaId" | "emendaId" | "entidadeId" | "oportunidadeId"> = {
+  demanda: "demandaId", emenda: "emendaId", entidade: "entidadeId", oportunidade: "oportunidadeId",
+};
 
 const INCLUIR = {
   usuario: { select: { nome: true } },
   demanda: { select: { protocolo: true, responsavelId: true, criadoPorId: true } },
   emenda: { select: { numero: true, ano: true } },
   entidade: { select: { nome: true } },
+  oportunidade: { select: { nome: true } },
 } satisfies Prisma.DocumentoInclude;
 type DocumentoCompleto = Prisma.DocumentoGetPayload<{ include: typeof INCLUIR }>;
 
@@ -50,6 +53,7 @@ async function registroAlvo(db: Db, v: NonNullable<Vinculo>) {
   const r =
     v.tipo === "demanda" ? await db.demanda.findUnique({ where: { id: v.id }, select: sel })
     : v.tipo === "emenda" ? await db.emenda.findUnique({ where: { id: v.id }, select: sel })
+    : v.tipo === "oportunidade" ? await db.oportunidade.findUnique({ where: { id: v.id }, select: sel })
     : await db.entidade.findUnique({ where: { id: v.id }, select: { criadoPorId: true } });
   if (!r) throw naoEncontrado("Registro do documento não encontrado.");
   return r;
@@ -91,7 +95,7 @@ export async function listarDocumentos(db: Db, ator: Ator, f: FiltrosDocumentos 
   const where: Prisma.DocumentoWhereInput = {
     ...whereVisivel(ator),
     ...(f.categoria && (CATEGORIAS_DOCUMENTO as readonly string[]).includes(f.categoria) ? { categoria: f.categoria as CategoriaDocumento } : {}),
-    ...(f.vinculo === "avulso" ? { demandaId: null, emendaId: null, entidadeId: null }
+    ...(f.vinculo === "avulso" ? { demandaId: null, emendaId: null, entidadeId: null, oportunidadeId: null }
       : f.vinculo && f.vinculo in COLUNA ? { [COLUNA[f.vinculo as TipoVinculo]]: { not: null } } : {}),
   };
   // Busca por nome/descrição não alcança anexos de demanda que o usuário não pode abrir (o nome pode ter dado pessoal).
@@ -174,5 +178,5 @@ export async function removerDocumento(db: Db, ator: Ator, id: string, meta: Met
     });
   });
   await storage.remover(d.caminho).catch(() => undefined);
-  return { demandaId: d.demandaId, emendaId: d.emendaId, entidadeId: d.entidadeId };
+  return { demandaId: d.demandaId, emendaId: d.emendaId, entidadeId: d.entidadeId, oportunidadeId: d.oportunidadeId };
 }
