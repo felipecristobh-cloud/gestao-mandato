@@ -32,7 +32,8 @@ export default async function OportunidadesPage({ searchParams }: { searchParams
       />
 
       <Cartao className="mb-4">
-        <form method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        {/* key: ao limpar/navegar, os selects voltam a refletir a URL */}
+        <form key={new URLSearchParams(sp as Record<string, string>).toString()} method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <div className="sm:col-span-2">
             <Rotulo htmlFor="q">Buscar</Rotulo>
             <Campo id="q" name="q" defaultValue={sp.q} placeholder="Nome, problema ou público" />
