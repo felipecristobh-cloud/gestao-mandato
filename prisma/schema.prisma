@@ -70,6 +70,10 @@ model Usuario {
   historicoCompromissos    CompromissoHistorico[]
   vinculosCompromisso      CompromissoVinculo[]
 
+  oportunidadesResponsavel Oportunidade[]          @relation("OportunidadeResponsavel")
+  oportunidadesCriadas     Oportunidade[]          @relation("OportunidadeCriadoPor")
+  historicoOportunidades   OportunidadeHistorico[]
+
   @@map("usuario")
 }
 
@@ -93,6 +97,8 @@ model Regional {
   codigo String @unique
 
   bairros Bairro[]
+
+  oportunidades OportunidadeRegional[]
 
   @@map("regional")
 }
@@ -155,6 +161,8 @@ model Bairro {
 
   entidades    Entidade[]
   compromissos Compromisso[]
+
+  oportunidades OportunidadeBairro[]
 
   @@unique([nome, regionalId])
   @@map("bairro")
@@ -828,4 +836,111 @@ model Documento {
   @@index([entidadeId])
   @@index([criadoEm])
   @@map("documento")
+}
+
+// ---------- Banco de Oportunidades Legislativas ----------
+
+enum PrioridadeOportunidade {
+  MAXIMA
+  ALTA
+  INTERMEDIARIA
+  BAIXA
+}
+
+enum TipoHistoricoOportunidade {
+  CRIACAO
+  EDICAO
+  AVALIACAO
+  PRIORIDADE
+}
+
+/// Eixo temático das oportunidades (separado dos temas de demanda).
+model EixoLegislativo {
+  id    Int     @id @default(autoincrement())
+  nome  String  @unique
+  ativo Boolean @default(true)
+
+  oportunidades Oportunidade[]
+
+  @@map("eixo_legislativo")
+}
+
+model Oportunidade {
+  id                      String                  @id @default(uuid()) @db.Uuid
+  nome                    String
+  problema                String
+  descricaoProblema       String                  @map("descricao_problema")
+  publico                 String
+  objetivo                String
+  solucao                 String
+  resultados              String?
+  fundamentacao           String?
+  legislacaoRelacionada   String?                 @map("legislacao_relacionada")
+  projetosSemelhantes     String?                 @map("projetos_semelhantes")
+  parceiros               String?
+  eixoId                  Int                     @map("eixo_id")
+  responsavelId           String?                 @map("responsavel_id") @db.Uuid
+  notaImpacto             Int?                    @map("nota_impacto") @db.SmallInt
+  notaAlcance             Int?                    @map("nota_alcance") @db.SmallInt
+  notaViabilidade         Int?                    @map("nota_viabilidade") @db.SmallInt
+  notaExecucao            Int?                    @map("nota_execucao") @db.SmallInt
+  notaInovacao            Int?                    @map("nota_inovacao") @db.SmallInt
+  /// 0–100, calculada pelos pesos; nula enquanto a avaliação estiver incompleta.
+  notaFinal               Int?                    @map("nota_final") @db.SmallInt
+  prioridadeManual        PrioridadeOportunidade? @map("prioridade_manual")
+  justificativaPrioridade String?                 @map("justificativa_prioridade")
+  criadoPorId             String?                 @map("criado_por_id") @db.Uuid
+  criadoEm                DateTime                @default(now()) @map("criado_em")
+  atualizadoEm            DateTime                @updatedAt @map("atualizado_em")
+
+  eixo        EixoLegislativo         @relation(fields: [eixoId], references: [id])
+  responsavel Usuario?                @relation("OportunidadeResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  criadoPor   Usuario?                @relation("OportunidadeCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  bairros     OportunidadeBairro[]
+  regionais   OportunidadeRegional[]
+  historico   OportunidadeHistorico[]
+
+  @@index([eixoId])
+  @@index([notaFinal])
+  @@index([criadoEm])
+  @@map("oportunidade")
+}
+
+model OportunidadeBairro {
+  oportunidadeId String @map("oportunidade_id") @db.Uuid
+  bairroId       Int    @map("bairro_id")
+
+  oportunidade Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+  bairro       Bairro       @relation(fields: [bairroId], references: [id])
+
+  @@id([oportunidadeId, bairroId])
+  @@index([bairroId])
+  @@map("oportunidade_bairro")
+}
+
+model OportunidadeRegional {
+  oportunidadeId String @map("oportunidade_id") @db.Uuid
+  regionalId     Int    @map("regional_id")
+
+  oportunidade Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+  regional     Regional     @relation(fields: [regionalId], references: [id])
+
+  @@id([oportunidadeId, regionalId])
+  @@index([regionalId])
+  @@map("oportunidade_regional")
+}
+
+model OportunidadeHistorico {
+  id             String                    @id @default(uuid()) @db.Uuid
+  oportunidadeId String                    @map("oportunidade_id") @db.Uuid
+  usuarioId      String?                   @map("usuario_id") @db.Uuid
+  data           DateTime                  @default(now())
+  tipo           TipoHistoricoOportunidade
+  descricao      String
+
+  oportunidade Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+  usuario      Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([oportunidadeId, data])
+  @@map("oportunidade_historico")
 }

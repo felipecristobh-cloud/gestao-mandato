@@ -6,6 +6,7 @@ export const MENU: ItemMenu[] = [
   { href: "/dashboard", rotulo: "Dashboard", icone: "LayoutDashboard" },
   { href: "/demandas", rotulo: "Demandas", icone: "Inbox" },
   { href: "/emendas", rotulo: "Emendas", icone: "Landmark" },
+  { href: "/oportunidades", rotulo: "Oportunidades Legislativas", icone: "Lightbulb" },
   { href: "/parlamentares", rotulo: "Parlamentares e Mandatos", icone: "Users" },
   { href: "/entidades", rotulo: "Entidades", icone: "Building2" },
   { href: "/agenda", rotulo: "Agenda", icone: "CalendarDays" },
