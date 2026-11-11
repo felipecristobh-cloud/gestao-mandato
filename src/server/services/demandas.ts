@@ -237,12 +237,16 @@ const dataConclusaoPara = (status: StatusDemanda) => (STATUS_FINAIS.includes(sta
 /** Avisa por e-mail quem passou a ser responsável (se não for quem fez a mudança). */
 async function avisarSeNovoResponsavel(db: Db, ator: Ator, d: { id: string; protocolo: string; temaId: number; prazo: Date | null; responsavelId: string | null }) {
   if (!d.responsavelId || d.responsavelId === ator.id) return;
-  const [u, tema, quem] = await Promise.all([
-    db.usuario.findUnique({ where: { id: d.responsavelId }, select: { email: true, nome: true, ativo: true } }),
-    db.tema.findUnique({ where: { id: d.temaId }, select: { nome: true } }),
-    db.usuario.findUnique({ where: { id: ator.id }, select: { nome: true } }),
-  ]);
-  if (u) await avisarResponsavelDemanda(u, { id: d.id, protocolo: d.protocolo, tema: tema?.nome ?? "", prazo: d.prazo }, quem?.nome ?? "Alguém da equipe");
+  try {
+    const [u, tema, quem] = await Promise.all([
+      db.usuario.findUnique({ where: { id: d.responsavelId }, select: { email: true, nome: true, ativo: true } }),
+      db.tema.findUnique({ where: { id: d.temaId }, select: { nome: true } }),
+      db.usuario.findUnique({ where: { id: ator.id }, select: { nome: true } }),
+    ]);
+    if (u) await avisarResponsavelDemanda(u, { id: d.id, protocolo: d.protocolo, tema: tema?.nome ?? "", prazo: d.prazo }, quem?.nome ?? "Alguém da equipe");
+  } catch (err) {
+    console.error("Falha ao preparar alerta de demanda:", (err as Error).message);
+  }
 }
 
 export async function criarDemanda(db: Db, ator: Ator, entrada: DemandaCriar, meta: { ip?: string } = {}) {
