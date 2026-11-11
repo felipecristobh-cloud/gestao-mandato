@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db, limparBanco, criarUsuarioTeste, criarBase } from "../setup/db";
-import { excluirUsuario, listarUsuarios } from "@/server/services/usuarios";
+import { atualizarUsuario, excluirUsuario, listarUsuarios } from "@/server/services/usuarios";
 import { criarDemanda } from "@/server/services/demandas";
 import * as email from "@/server/email";
 
@@ -30,6 +30,7 @@ describe("excluir usuário", () => {
     expect(await db.auditLog.count({ where: { entidade: "usuario", registroId: assessor.id, acao: "EXCLUIR" } })).toBe(1);
     await expect(excluirUsuario(db, admin, admin.id)).rejects.toThrow(/próprio/);
     await expect(excluirUsuario(db, assessor, admin.id)).rejects.toThrow();
+    await expect(atualizarUsuario(db, admin, assessor.id, { nome: antes.nome, email: antes.email, telefone: "", cargo: "", perfil: "ASSESSOR", ativo: true })).rejects.toThrow(/não encontrado/);
   });
 });
 

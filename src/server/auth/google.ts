@@ -107,7 +107,7 @@ export async function autenticarGoogle(
     if (falhas >= MAX_FALHAS_IP) return { ok: false, motivo: "BLOQUEADO_IP" };
   }
   const usuario = await db.usuario.findUnique({ where: { email } });
-  if (!usuario || !usuario.ativo) {
+  if (!usuario || !usuario.ativo || usuario.excluidoEm) {
     await registrarAuditoria(db, {
       usuarioId: usuario?.id ?? null, entidade: "usuario", registroId: usuario?.id ?? null, acao: "LOGIN_FALHA",
       descricao: usuario ? "Google: usuário inativo" : "Google: e-mail não cadastrado", ip: meta.ip,

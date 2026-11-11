@@ -50,7 +50,7 @@ export async function atualizarUsuario(db: Db, ator: Ator, id: string, entrada: 
   if (!r.success) throw primeiroErro(r);
   const dados = r.data;
 
-  const atual = await db.usuario.findUnique({ where: { id }, select: CAMPOS_PUBLICOS });
+  const atual = await db.usuario.findFirst({ where: { id, excluidoEm: null }, select: CAMPOS_PUBLICOS });
   if (!atual) throw naoEncontrado("Usuário não encontrado.");
 
   if (id === ator.id && (!dados.ativo || dados.perfil !== atual.perfil)) {
@@ -79,7 +79,7 @@ export async function atualizarUsuario(db: Db, ator: Ator, id: string, entrada: 
 
 export async function redefinirSenha(db: Db, ator: Ator, id: string) {
   exigir(ator, "usuarios:gerenciar");
-  const atual = await db.usuario.findUnique({ where: { id } });
+  const atual = await db.usuario.findFirst({ where: { id, excluidoEm: null } });
   if (!atual) throw naoEncontrado("Usuário não encontrado.");
   const senhaTemporaria = gerarSenhaTemporaria();
   const senhaHash = await hashSenha(senhaTemporaria);
