@@ -33,7 +33,7 @@ export async function autenticar(
   }
   const usuario = await db.usuario.findUnique({ where: { email } });
 
-  if (!usuario || !usuario.ativo) {
+  if (!usuario || !usuario.ativo || usuario.excluidoEm) {
     hashFalso ??= hashSenha("senha-inexistente-para-tempo-constante");
     await verificarSenha(await hashFalso, senha);
     await registrarAuditoria(db, {

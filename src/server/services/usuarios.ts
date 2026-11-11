@@ -16,12 +16,12 @@ function primeiroErro(r: { error: { issues: { message: string }[] } }) {
 
 export async function listarUsuarios(db: Db, ator: Ator) {
   exigir(ator, "usuarios:gerenciar");
-  return db.usuario.findMany({ select: CAMPOS_PUBLICOS, orderBy: [{ ativo: "desc" }, { nome: "asc" }] });
+  return db.usuario.findMany({ where: { excluidoEm: null }, select: CAMPOS_PUBLICOS, orderBy: [{ ativo: "desc" }, { nome: "asc" }] });
 }
 
 export async function obterUsuario(db: Db, ator: Ator, id: string) {
   exigir(ator, "usuarios:gerenciar");
-  const u = await db.usuario.findUnique({ where: { id }, select: CAMPOS_PUBLICOS });
+  const u = await db.usuario.findFirst({ where: { id, excluidoEm: null }, select: CAMPOS_PUBLICOS });
   if (!u) throw naoEncontrado("Usuário não encontrado.");
   return u;
 }
@@ -50,7 +50,7 @@ export async function atualizarUsuario(db: Db, ator: Ator, id: string, entrada: 
   if (!r.success) throw primeiroErro(r);
   const dados = r.data;
 
-  const atual = await db.usuario.findUnique({ where: { id }, select: CAMPOS_PUBLICOS });
+  const atual = await db.usuario.findFirst({ where: { id, excluidoEm: null }, select: CAMPOS_PUBLICOS });
   if (!atual) throw naoEncontrado("Usuário não encontrado.");
 
   if (id === ator.id && (!dados.ativo || dados.perfil !== atual.perfil)) {
@@ -79,7 +79,7 @@ export async function atualizarUsuario(db: Db, ator: Ator, id: string, entrada: 
 
 export async function redefinirSenha(db: Db, ator: Ator, id: string) {
   exigir(ator, "usuarios:gerenciar");
-  const atual = await db.usuario.findUnique({ where: { id } });
+  const atual = await db.usuario.findFirst({ where: { id, excluidoEm: null } });
   if (!atual) throw naoEncontrado("Usuário não encontrado.");
   const senhaTemporaria = gerarSenhaTemporaria();
   const senhaHash = await hashSenha(senhaTemporaria);
@@ -123,4 +123,30 @@ export async function listarAuditoria(db: Db, ator: Ator, filtros: { entidade?: 
     db.auditLog.count({ where }),
   ]);
   return { itens, total, pagina, paginas: Math.max(1, Math.ceil(total / porPagina)) };
+}
+
+/**
+ * Exclusão lógica: o usuário some das listas, perde o acesso (sessões, senha e e-mail inválidos) e o e-mail fica livre para novo cadastro.
+ * O nome continua nos históricos e na auditoria.
+ */
+export async function excluirUsuario(db: Db, ator: Ator, id: string) {
+  exigir(ator, "usuarios:gerenciar");
+  if (id === ator.id) throw validacao("Você não pode excluir o seu próprio usuário.");
+  const atual = await db.usuario.findFirst({ where: { id, excluidoEm: null }, select: CAMPOS_PUBLICOS });
+  if (!atual) throw naoEncontrado("Usuário não encontrado.");
+  const senhaHash = await hashSenha(gerarSenhaTemporaria() + gerarSenhaTemporaria());
+  await db.$transaction(async (tx) => {
+    if (atual.perfil === "ADMIN" && atual.ativo) {
+      const admins = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM usuario WHERE perfil = 'ADMIN' AND ativo FOR UPDATE`;
+      if (admins.length <= 1) throw validacao("O sistema precisa de pelo menos um administrador ativo.");
+    }
+    await tx.usuario.update({
+      where: { id },
+      data: { ativo: false, excluidoEm: new Date(), email: `excluido-${id}@removido.invalid`, telefone: null, senhaHash, trocarSenha: true },
+    });
+    await tx.sessao.deleteMany({ where: { usuarioId: id } });
+    await registrarAuditoria(tx, {
+      usuarioId: ator.id, entidade: "usuario", registroId: id, acao: "EXCLUIR", valorAnterior: atual, descricao: `Usuário excluído: ${atual.nome}`,
+    });
+  });
 }

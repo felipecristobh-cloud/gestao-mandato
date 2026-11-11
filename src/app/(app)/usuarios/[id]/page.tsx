@@ -4,10 +4,10 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/server/db";
 import { exigirPermissaoPagina } from "@/server/auth/current";
 import { obterUsuario } from "@/server/services/usuarios";
-import { atualizarUsuarioAction, redefinirSenhaAction } from "@/server/services/usuarios-actions";
+import { atualizarUsuarioAction, excluirUsuarioAction, redefinirSenhaAction } from "@/server/services/usuarios-actions";
 import { AppError } from "@/server/errors";
 import { CabecalhoPagina, Cartao } from "@/components/ui";
-import { BotaoRedefinirSenha, FormUsuario } from "@/components/forms/usuario";
+import { BotaoExcluirUsuario, BotaoRedefinirSenha, FormUsuario } from "@/components/forms/usuario";
 
 export const metadata: Metadata = { title: "Editar usuário" };
 
@@ -30,6 +30,13 @@ export default async function EditarUsuarioPage({ params }: { params: Promise<{ 
           <p className="mb-3 text-sm text-slate-600">Use se o usuário esqueceu a senha ou foi bloqueado. Ele terá de criar uma nova no próximo acesso.</p>
           <BotaoRedefinirSenha acao={redefinirSenhaAction.bind(null, u.id)} />
         </Cartao>
+        {u.id !== ator.id && (
+          <Cartao>
+            <h2 className="mb-1 text-base font-semibold">Excluir usuário</h2>
+            <p className="mb-3 text-sm text-slate-600">A pessoa perde o acesso e sai da lista. As demandas e o histórico continuam, com o nome dela.</p>
+            <BotaoExcluirUsuario acao={excluirUsuarioAction.bind(null, u.id)} nome={u.nome} />
+          </Cartao>
+        )}
       </div>
     </>
   );

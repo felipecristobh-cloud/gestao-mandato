@@ -89,3 +89,21 @@ export function BotaoRedefinirSenha({ acao }: { acao: (e: EstadoUsuario) => Prom
     </form>
   );
 }
+
+export function BotaoExcluirUsuario({ acao, nome }: { acao: (e: EstadoUsuario) => Promise<EstadoUsuario>; nome: string }) {
+  const [estado, enviar, enviando] = useActionState(acao, undefined);
+  return (
+    <form
+      action={enviar}
+      onSubmit={(e) => {
+        if (!confirm(`Excluir ${nome}? A pessoa perde o acesso e some da lista. O nome continua no histórico do que ela fez.`)) e.preventDefault();
+      }}
+      className="space-y-3"
+    >
+      {estado?.erro && <Aviso>{estado.erro}</Aviso>}
+      <button type="submit" disabled={enviando} className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">
+        {enviando ? "Excluindo…" : "Excluir usuário"}
+      </button>
+    </form>
+  );
+}
