@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { exigirUsuario } from "@/server/auth/current";
 import { AppError } from "@/server/errors";
-import { atualizarUsuario, criarUsuario, redefinirSenha } from "./usuarios";
+import { redirect } from "next/navigation";
+import { atualizarUsuario, criarUsuario, excluirUsuario, redefinirSenha } from "./usuarios";
 
 type Valores = ReturnType<typeof dadosDoForm> & { ativo?: boolean };
 export type EstadoUsuario = { erro?: string; ok?: string; senhaTemporaria?: string; email?: string; valores?: Valores } | undefined;
@@ -50,4 +51,12 @@ export async function redefinirSenhaAction(id: string, _estado: EstadoUsuario): 
   const r = await tratar(() => redefinirSenha(prisma, ator, id));
   if ("erro" in r) return r;
   return { ok: "Senha redefinida. Todas as sessões do usuário foram encerradas.", senhaTemporaria: r.senhaTemporaria };
+}
+
+export async function excluirUsuarioAction(id: string, _estado: EstadoUsuario): Promise<EstadoUsuario> {
+  const ator = await exigirUsuario();
+  const r = await tratar(() => excluirUsuario(prisma, ator, id));
+  if (r && typeof r === "object" && "erro" in r) return r as { erro: string };
+  revalidatePath("/usuarios");
+  redirect("/usuarios");
 }

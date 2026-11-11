@@ -1,6 +1,7 @@
 import type { Prisma, Prioridade, StatusDemanda, TipoDemanda } from "@prisma/client";
 import type { Db, Tx } from "@/server/db";
 import { exigir, pode, podeEditarRegistro, podeVerContato, proibir, type Ator } from "@/server/authz";
+import { avisarResponsavelDemanda } from "@/server/email";
 import { registrarAuditoria, diferenca } from "@/server/audit";
 import { naoEncontrado, validacao } from "@/server/errors";
 import { mascararEmail, mascararTelefone } from "@/lib/mascara";
@@ -233,7 +234,24 @@ async function proximoProtocolo(tx: Tx) {
 
 const dataConclusaoPara = (status: StatusDemanda) => (STATUS_FINAIS.includes(status) ? deISO(hojeISO()) : null);
 
+/** Avisa por e-mail quem passou a ser responsável (se não for quem fez a mudança). */
+async function avisarSeNovoResponsavel(db: Db, ator: Ator, d: { id: string; protocolo: string; temaId: number; prazo: Date | null; responsavelId: string | null }) {
+  if (!d.responsavelId || d.responsavelId === ator.id) return;
+  const [u, tema, quem] = await Promise.all([
+    db.usuario.findUnique({ where: { id: d.responsavelId }, select: { email: true, nome: true, ativo: true } }),
+    db.tema.findUnique({ where: { id: d.temaId }, select: { nome: true } }),
+    db.usuario.findUnique({ where: { id: ator.id }, select: { nome: true } }),
+  ]);
+  if (u) await avisarResponsavelDemanda(u, { id: d.id, protocolo: d.protocolo, tema: tema?.nome ?? "", prazo: d.prazo }, quem?.nome ?? "Alguém da equipe");
+}
+
 export async function criarDemanda(db: Db, ator: Ator, entrada: DemandaCriar, meta: { ip?: string } = {}) {
+  const d = await criarDemandaSemAviso(db, ator, entrada, meta);
+  await avisarSeNovoResponsavel(db, ator, d);
+  return d;
+}
+
+async function criarDemandaSemAviso(db: Db, ator: Ator, entrada: DemandaCriar, meta: { ip?: string } = {}) {
   exigir(ator, "dados:criar");
   const r = demandaCriarSchema.safeParse(entrada);
   if (!r.success) throw primeiroErro(r);
@@ -304,7 +322,7 @@ export async function atualizarDemanda(db: Db, ator: Ator, id: string, entrada: 
   );
   if (!dDemanda.mudou && !dPessoa.mudou) return atual;
 
-  return db.$transaction(async (tx) => {
+  const salvo = await db.$transaction(async (tx) => {
     if (dPessoa.mudou) {
       await tx.pessoa.update({ where: { id: atual.pessoaId }, data: dPessoa.novo });
       await registrarAuditoria(tx, {
@@ -340,6 +358,8 @@ export async function atualizarDemanda(db: Db, ator: Ator, id: string, entrada: 
     }
     return d;
   });
+  if ("responsavelId" in dDemanda.novo) await avisarSeNovoResponsavel(db, ator, salvo);
+  return salvo;
 }
 
 export async function alterarStatus(db: Db, ator: Ator, id: string, entrada: { status: string; comentario?: string | null }, meta: { ip?: string } = {}) {

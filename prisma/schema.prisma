@@ -40,6 +40,8 @@ model Usuario {
   tentativasFalhas Int       @default(0) @map("tentativas_falhas")
   bloqueadoAte     DateTime? @map("bloqueado_ate")
   ultimoLogin      DateTime? @map("ultimo_login")
+  /// Exclusão lógica: some das listas e não entra mais; o nome fica no histórico.
+  excluidoEm       DateTime? @map("excluido_em")
   criadoEm         DateTime  @default(now()) @map("criado_em")
   atualizadoEm     DateTime  @updatedAt @map("atualizado_em")
 
